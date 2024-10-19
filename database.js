@@ -16,5 +16,6 @@ const pool = mysql.createPool({
     return rows[0]
   }
   
-  const note = await getNote(2)
+  const note = await getNote(1)
+  console.log(note)
   console.log(note)
