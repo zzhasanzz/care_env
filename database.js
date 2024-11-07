@@ -21,3 +21,4 @@ export async function getNote(id) {
 const note = await getNote(1)
 console.log(note)
 console.log(note)
+console.log(note)
