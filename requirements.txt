@@ -1,0 +1,5 @@
+Flask==2.3.2              # Core Flask framework
+authlib==1.2.0            # For Google OAuth integration
+python-dotenv==1.0.0      # For environment variable management
+mysqlclient==2.1.1        # For MySQL database connection
+numpy==1.23.5
