@@ -118,7 +118,7 @@
 
     <div class="section">
         <a href="{{ url_for('update') }}" class="btn">Update Your Information</a>
-        <a href="{{ url_for('calculate_user_bill', user_id=user_info['profile']['id'])  }}" class="btn">View Electricity Bill</a>
+        <a href="{{ url_for('calculate_user_bill', user_id=user_info['details']['id'])  }}" class="btn">View Electricity Bill</a>
     </div>
 
     <p><a href="{{ url_for('logout') }}">Logout</a></p>

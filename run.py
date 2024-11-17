@@ -167,7 +167,7 @@ def dashboard():
 
     # Fetch user details
     cursor.execute("""
-        SELECT u.display_name, u.email, u.phone, u.address, u.division,
+        SELECT u.id, u.display_name, u.email, u.phone, u.address, u.division,
                up.provider_name AS electricity_provider,
                uw.provider_name AS water_provider,
                ug.provider_name AS gas_provider, u.gas_type, u.car_ids
