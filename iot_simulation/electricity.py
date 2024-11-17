@@ -1,4 +1,6 @@
+import MySQLdb
 import numpy as np
+from db import get_db_connection
 
 # Define appliances and their power ratings with usage hours
 appliances = {
@@ -37,6 +39,39 @@ appliances = {
         "daily_hours": lambda: np.random.normal(0.5, 0.1)
     }
 }
+
+def fetch_user_data(user_id):
+    """
+    Fetch housing details and electricity provider info for the user.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(MySQLdb.cursors.DictCursor)
+    # Fetch user housing data
+    cursor.execute("""
+        SELECT uh.house_size_sqft, uh.num_members, uh.solar_panel_watt,
+               uh.wind_source_watt, u.electricity_provider
+        FROM user_housing uh
+        JOIN user u ON uh.user_id = u.id
+        WHERE u.id = %s
+    """, (user_id,))
+    housing_data = cursor.fetchone()
+
+    if not housing_data:
+        raise ValueError("No housing data found for the given user.")
+
+    # Fetch utility provider's unit price
+    electricity_provider = housing_data['electricity_provider']
+    cursor.execute("""
+        SELECT unit_price FROM utility_providers
+        WHERE id = %s
+    """, (electricity_provider,))
+    provider_data = cursor.fetchone()
+
+    if not provider_data:
+        raise ValueError("No utility provider found for the given user.")
+
+    housing_data['base_rate'] = provider_data['unit_price']
+    return housing_data
 
 # Function to categorize house size based on square footage
 def get_house_size_category(square_footage):
@@ -128,70 +163,74 @@ def simulate_daily_consumption(square_footage, num_members, season="summer", sol
 
 
 
-# Function to calculate electricity bill
-def calculate_bill(total_units):
-    billing_rates = [
-        (75, 3.80),
-        (125, 5.14),
-        (100, 5.36),
-        (200, 5.63),
-        (np.inf, 9.98)
-    ]
-    service_charge = 10
-    demand_charge = 30
-    meter_rent = 10
-    vat_rate = 0.05
-
-    bill = 0
+def calculate_bill(total_units, base_rate, multipliers, tiers, service_charge=10, demand_charge=30, meter_rent=10, vat_rate=0.05):
+    """
+    Calculate the total electricity bill for a given number of units with fixed charges and VAT.
+    """
+    # Calculate tiered rates dynamically
+    rates = [base_rate * multiplier for multiplier in multipliers]
+    total_bill = 0
     remaining_units = total_units
 
-    for slab, rate in billing_rates:
+    # Calculate the base bill using tiered rates
+    for tier_limit, rate in zip(tiers, rates):
         if remaining_units <= 0:
             break
-        units_in_slab = min(slab, remaining_units)
-        bill += units_in_slab * rate
-        remaining_units -= units_in_slab
+        units_in_tier = min(remaining_units, tier_limit)
+        total_bill += units_in_tier * rate
+        remaining_units -= units_in_tier
 
-    subtotal = bill + service_charge + demand_charge + meter_rent
+    # Handle remaining units for the last tier
+    if remaining_units > 0:
+        total_bill += remaining_units * rates[-1]
+
+    # Add fixed charges
+    subtotal = total_bill + service_charge + demand_charge + meter_rent
+
+    # Add VAT
     vat = subtotal * vat_rate
-    total_bill = subtotal + vat
-    return total_bill
+    total_bill_with_vat = subtotal + vat
 
-# Simulate consumption for 31 days
-# Simulate consumption for 31 days and print daily consumption and cost
-square_footage = 1100  # Example house size in sqft
-num_members = 5  # Number of people in the house
-solar_capacity = 1.0  # 1 kW solar panel
-wind_capacity = 1.0  # 1 kW wind turbine
-season = "summer"
+    return total_bill_with_vat
 
-try:
-    daily_consumptions = []
-    daily_costs = []
 
-    print("Day-by-Day Energy Consumption and Cost:")
-    print("-" * 50)
+def main(user_id):
+    """
+    Main function to calculate electricity consumption and bill for a user.
+    """
+    try:
+        # Fetch user data from the database
+        user_data = fetch_user_data(user_id)
+        house_size = user_data['house_size_sqft']
+        num_members = user_data['num_members']
+        solar_capacity = user_data['solar_panel_watt']
+        wind_capacity = user_data['wind_source_watt']
+        base_rate = user_data['base_rate']
+        season = "summer"
 
-    for day in range(1, 32):  # Loop for 31 days
-        daily_consumption = simulate_daily_consumption(square_footage, num_members, season, solar_capacity, wind_capacity)
-        daily_cost = calculate_bill(daily_consumption)
-        
-        daily_consumptions.append(daily_consumption)
-        daily_costs.append(daily_cost)
+        # Billing configuration
+        multipliers = [1.00, 1.35, 1.41, 1.48, 2.63]
+        tiers = [75, 125, 100, 200, float('inf')]
 
-        print(f"Day {day}: Consumption = {daily_consumption:.2f} kWh, Cost = Tk {daily_cost:.2f}")
+        # Simulate monthly consumption
+        total_units = sum(simulate_daily_consumption(house_size, num_members, season , solar_capacity, wind_capacity) for _ in range(31))
 
-    total_consumption = sum(daily_consumptions)
-    total_bill = sum(daily_costs)
+        # Calculate the total bill
+        total_bill = calculate_bill(total_units, base_rate, multipliers, tiers)
 
-    print("\nSummary:")
-    print("-" * 50)
-    print(f"House Size: {get_house_size_category(square_footage)}")
-    print(f"Total Monthly Consumption: {total_consumption:.2f} kWh")
-    print(f"Total Electricity Bill: Tk {total_bill:.2f}")
-except Exception as e:
-    print(f"Error during simulation: {e}")
-    raise
+        # Output results
+        print(f"Total Monthly Consumption: {total_units:.2f} kWh")
+        print(f"Total Electricity Bill: Tk {total_bill:.2f}")
+
+    except Exception as e:
+        print(f"Error: {e}")
+
+
+if __name__ == "__main__":
+    # Replace 1 with the user_id of the logged-in user
+    main(user_id=1)
+
 
 
 # https://bdepoint.com/electric-bill-calculation-bangladesh/
+

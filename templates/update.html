@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px auto;
+            max-width: 800px;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        p {
+            color: #555;
+        }
+
+        form {
+            margin-top: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        a {
+            text-decoration: none;
+            color: #007BFF;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        #car_list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        #car_list li {
+            padding: 5px;
+            background: #eee;
+            margin: 5px 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #car_list li:hover {
+            background: #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome, {{ user['name'] }}!</h1>
+    <p>Your email: {{ user['email'] }}</p>
+
+    <h2>Update Your Information</h2>
+    <form action="{{ url_for('update_user') }}" method="POST">
+        <label for="phone">Phone Number:</label>
+        <input type="text" id="phone" name="phone" placeholder="Enter your phone number">
+
+        <label for="address">Address:</label>
+        <textarea id="address" name="address" placeholder="Enter your address"></textarea>
+
+        <label for="division">Division:</label>
+        <select id="division" name="division" onchange="loadProviders()">
+            <option value="" disabled selected>Select your division</option>
+            <option value="Dhaka">Dhaka</option>
+            <option value="Chattogram">Chattogram</option>
+            <option value="Khulna">Khulna</option>
+            <option value="Rajshahi">Rajshahi</option>
+            <option value="Barishal">Barishal</option>
+            <option value="Sylhet">Sylhet</option>
+            <option value="Rangpur">Rangpur</option>
+            <option value="Mymensingh">Mymensingh</option>
+        </select>
+
+        <label for="electricity_provider">Electricity Provider:</label>
+        <select id="electricity_provider" name="electricity_provider">
+            <option value="" disabled selected>Select electricity provider</option>
+        </select>
+
+        <label for="water_provider">Water Provider:</label>
+        <select id="water_provider" name="water_provider">
+            <option value="" disabled selected>Select water provider</option>
+        </select>
+
+        <label for="gas_provider">Gas Provider:</label>
+        <select id="gas_provider" name="gas_provider">
+            <option value="" disabled selected>Select gas provider</option>
+        </select>
+
+        <label for="gas_type">Gas Type:</label>
+        <select id="gas_type" name="gas_type">
+            <option value="" disabled selected>Select gas type</option>
+            <option value="metered">Metered</option>
+            <option value="non-metered">Non-metered</option>
+        </select>
+
+        <label for="cars">Cars:</label>
+        <input type="text" id="car_search" oninput="searchCars()" placeholder="Search car models">
+        <ul id="car_list"></ul>
+
+        <div id="selected_cars">
+            <h3>Selected Cars:</h3>
+            <ul id="selected_car_list"></ul>
+        </div>
+
+        <h2>Housing Information</h2>
+        <label for="house_size_sqft">House Size (sqft):</label>
+        <input type="number" id="house_size_sqft" name="house_size_sqft" placeholder="Enter house size in sqft">
+
+        <label for="num_members">Number of Members:</label>
+        <input type="number" id="num_members" name="num_members" placeholder="Enter number of members">
+
+        <label for="solar_panel_watt">Solar Panel Wattage:</label>
+        <input type="number" id="solar_panel_watt" name="solar_panel_watt" placeholder="Enter solar panel wattage">
+
+        <label for="wind_source_watt">Wind Source Wattage:</label>
+        <input type="number" id="wind_source_watt" name="wind_source_watt" placeholder="Enter wind source wattage">
+
+        <label for="other_renewable_source">Other Renewable Source Wattage:</label>
+        <input type="number" id="other_renewable_source" name="other_renewable_source" placeholder="Enter other renewable source wattage">
+
+        <button type="submit">Update Information</button>
+    </form>
+
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+
+    <script>
+        function loadProviders() {
+            const division = document.getElementById('division').value;
+
+            // Fetch utility providers for the selected division
+            fetch(`/get_providers/${division}`)
+                .then(response => response.json())
+                .then(data => {
+                    const electricitySelect = document.getElementById('electricity_provider');
+                    const waterSelect = document.getElementById('water_provider');
+                    const gasSelect = document.getElementById('gas_provider');
+
+                    // Clear existing options
+                    electricitySelect.innerHTML = '<option value="" disabled selected>Select electricity provider</option>';
+                    waterSelect.innerHTML = '<option value="" disabled selected>Select water provider</option>';
+                    gasSelect.innerHTML = '<option value="" disabled selected>Select gas provider</option>';
+
+                    // Populate providers based on the type
+                    data.providers.forEach(provider => {
+                        const option = document.createElement('option');
+                        option.value = provider.id;
+                        option.textContent = provider.provider_name;
+
+                        if (provider.energy_type === 'electricity') {
+                            electricitySelect.appendChild(option);
+                        } else if (provider.energy_type === 'water') {
+                            waterSelect.appendChild(option);
+                        } else if (provider.energy_type === 'gas') {
+                            gasSelect.appendChild(option);
+                        }
+                    });
+                })
+                .catch(err => console.error('Error loading providers:', err));
+        }
+
+        function searchCars() {
+            const query = document.getElementById('car_search').value;
+
+            if (query.length < 2) return; // Wait for at least 2 characters to minimize requests
+
+            fetch(`/search_cars?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    const carList = document.getElementById('car_list');
+                    carList.innerHTML = ''; // Clear previous results
+
+                    data.cars.forEach(car => {
+                        const li = document.createElement('li');
+                        li.textContent = car.model_name;
+                        li.onclick = () => addCarToSelection(car.id, car.model_name);
+                        carList.appendChild(li);
+                    });
+                });
+        }
+
+        function addCarToSelection(carId, carName) {
+            // Add a hidden input for the car ID
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'car_ids';
+            input.value = carId;
+            document.querySelector('form').appendChild(input);
+
+            // Add the car name to the selected list
+            const selectedCarList = document.getElementById('selected_car_list');
+            const li = document.createElement('li');
+            li.textContent = carName;
+            selectedCarList.appendChild(li);
+
+            // Clear the car search results
+            document.getElementById('car_list').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
