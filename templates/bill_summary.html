@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electricity Bill Summary</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px auto;
+            max-width: 600px;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        table {
+            width: 100%;
+            margin: 20px 0;
+            border-collapse: collapse;
+        }
+        table th, table td {
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        table th {
+            background-color: #007BFF;
+            color: white;
+        }
+        button {
+            background-color: #007BFF;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block;
+            margin: 20px auto;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Electricity Bill Summary</h1>
+    <table>
+        <tr>
+            <th>Field</th>
+            <th>Value</th>
+        </tr>
+        <tr>
+            <td>User ID</td>
+            <td>{{ user_id }}</td>
+        </tr>
+        <tr>
+            <td>House Size (sqft)</td>
+            <td>{{ house_size_sqft }}</td>
+        </tr>
+        <tr>
+            <td>Number of Members</td>
+            <td>{{ num_members }}</td>
+        </tr>
+        <tr>
+            <td>Solar Panel Wattage</td>
+            <td>{{ solar_panel_watt }}</td>
+        </tr>
+        <tr>
+            <td>Wind Source Wattage</td>
+            <td>{{ wind_source_watt }}</td>
+        </tr>
+        <tr>
+            <td>Season</td>
+            <td>{{ season }}</td>
+        </tr>
+        <tr>
+            <td>Total Units Consumed (kWh)</td>
+            <td>{{ total_units_kwh }}</td>
+        </tr>
+        <tr>
+            <td>Total Bill (Tk)</td>
+            <td>{{ total_bill_tk }}</td>
+        </tr>
+    </table>
+    <button onclick="location.href='/'">Go Back to Dashboard</button>
+</body>
+</html>

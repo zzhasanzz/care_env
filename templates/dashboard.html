@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1, h2 {
+            color: #4CAF50;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            margin-bottom: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul li {
+            padding: 5px 0;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome, {{ user_info['profile']['name'] }}!</h1>
+    <p>Your email: {{ user_info['profile']['email'] }}</p>
+
+    <div class="section">
+        <h2>User Details</h2>
+        <ul>
+            <li><strong>Phone:</strong> {{ user_info['details']['phone'] }}</li>
+            <li><strong>Address:</strong> {{ user_info['details']['address'] }}</li>
+            <li><strong>Division:</strong> {{ user_info['details']['division'] }}</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Utility Providers</h2>
+        <ul>
+            <li><strong>Electricity Provider:</strong> {{ user_info['details']['electricity_provider'] }}</li>
+            <li><strong>Water Provider:</strong> {{ user_info['details']['water_provider'] }}</li>
+            <li><strong>Gas Provider:</strong> {{ user_info['details']['gas_provider'] }}</li>
+            <li><strong>Gas Type:</strong> {{ user_info['details']['gas_type'] }}</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Housing Information</h2>
+        {% if user_info['housing'] %}
+        <ul>
+            <li><strong>House Size:</strong> {{ user_info['housing']['house_size_sqft'] }} sqft</li>
+            <li><strong>Number of Members:</strong> {{ user_info['housing']['num_members'] }}</li>
+            <li><strong>Solar Panel Wattage:</strong> {{ user_info['housing']['solar_panel_watt'] }} W</li>
+            <li><strong>Wind Source Wattage:</strong> {{ user_info['housing']['wind_source_watt'] }} W</li>
+            <li><strong>Other Renewable Sources:</strong> {{ user_info['housing']['other_renewable_source'] }}</li>
+        </ul>
+        {% else %}
+        <p>No housing information available.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <h2>Cars</h2>
+        {% if user_info['cars'] %}
+        <ul>
+            {% for car in user_info['cars'] %}
+            <li>{{ car }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No cars added.</p>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <a href="{{ url_for('update') }}" class="btn">Update Your Information</a>
+        <a href="{{ url_for('calculate_user_bill', user_id=user_info['profile']['id'])  }}" class="btn">View Electricity Bill</a>
+    </div>
+
+    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+</body>
+</html>

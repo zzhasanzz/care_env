@@ -1,6 +1,7 @@
 import MySQLdb
 import numpy as np
-from db import get_db_connection
+import os
+# from db import get_db_connection
 
 # Define appliances and their power ratings with usage hours
 appliances = {
@@ -40,6 +41,25 @@ appliances = {
     }
 }
 
+MYSQL_HOST = os.getenv('MYSQL_HOST')
+MYSQL_USER = os.getenv('MYSQL_USER')
+MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD')
+MYSQL_DATABASE = "care_env"
+
+
+def get_db_connection():
+    try:
+        conn = MySQLdb.connect(
+            host=MYSQL_HOST,
+            user=MYSQL_USER,
+            passwd=MYSQL_PASSWORD,
+            database=MYSQL_DATABASE
+        )
+        return conn
+    except MySQLdb.Error as err:
+        print(f"Error: Unable to connect to the database. {err}")
+        raise
+    
 def fetch_user_data(user_id):
     """
     Fetch housing details and electricity provider info for the user.

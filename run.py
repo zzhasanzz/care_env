@@ -1,11 +1,12 @@
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from flask import Flask, render_template, request, redirect, url_for, session
-
-
 from authlib.integrations.flask_client import OAuth
 from functools import wraps
 from dotenv import load_dotenv
+from iot_simulation.electricity import simulate_daily_consumption, fetch_user_data, calculate_bill, get_db_connection
 import MySQLdb
-import os
 import requests
 
 # Load environment variables
@@ -150,8 +151,58 @@ def update():
 @app.route('/dashboard')  # Route for the main dashboard
 @login_required
 def dashboard():
-    user = session['profile']
-    return render_template('dashboard.html', user=user)
+    user_profile = session['profile']
+    google_id = user_profile['id']
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    # Fetch user details
+    cursor.execute("""
+        SELECT u.display_name, u.email, u.phone, u.address, u.division,
+               up.provider_name AS electricity_provider,
+               uw.provider_name AS water_provider,
+               ug.provider_name AS gas_provider, u.gas_type, u.car_ids
+        FROM user u
+        LEFT JOIN utility_providers up ON u.electricity_provider = up.id
+        LEFT JOIN utility_providers uw ON u.water_provider = uw.id
+        LEFT JOIN utility_providers ug ON u.gas_provider = ug.id
+        WHERE u.google_id = %s
+    """, (google_id,))
+    user_data = cursor.fetchone()
+
+    if not user_data:
+        return "User information not found.", 404
+
+    # Fetch housing details
+    cursor.execute("""
+        SELECT house_size_sqft, num_members, solar_panel_watt, wind_source_watt, other_renewable_source
+        FROM user_housing
+        WHERE user_id = (
+            SELECT id FROM user WHERE google_id = %s
+        )
+    """, (google_id,))
+    housing_data = cursor.fetchone()
+
+    # Fetch car details
+    car_list = []
+    if user_data['car_ids']:
+        car_ids = user_data['car_ids'].split(',')
+        cursor.execute("""
+            SELECT model_name FROM vehicles WHERE id IN (%s)
+        """ % ','.join(['%s'] * len(car_ids)), car_ids)
+        car_list = [car['model_name'] for car in cursor.fetchall()]
+
+    cursor.close()
+
+    # Combine all data to pass to the template
+    user_info = {
+        'profile': user_profile,
+        'details': user_data,
+        'housing': housing_data,
+        'cars': car_list
+    }
+
+    return render_template('dashboard.html', user_info=user_info)
+
 
 @app.route('/update_user', methods=['POST'])
 def update_user():
@@ -227,6 +278,49 @@ def update_user():
     db.commit()
 
     return redirect(url_for('update'))
+
+@app.route('/calculate_bill/<int:user_id>', methods=['GET'])
+def calculate_user_bill(user_id):
+    """
+    Route to calculate electricity consumption and bill for a user and render the result.
+    """
+    try:
+        # Fetch user data from the database
+        conn = get_db_connection()
+        user_data = fetch_user_data(user_id)
+        house_size = user_data['house_size_sqft']
+        num_members = user_data['num_members']
+        solar_capacity = user_data['solar_panel_watt']
+        wind_capacity = user_data['wind_source_watt']
+        base_rate = user_data['base_rate']
+        season = "summer"
+
+        # Billing configuration
+        multipliers = [1.00, 1.35, 1.41, 1.48, 2.63]
+        tiers = [75, 125, 100, 200, float('inf')]
+
+        # Simulate monthly consumption
+        total_units = sum(simulate_daily_consumption(
+            house_size, num_members, season, solar_capacity, wind_capacity
+        ) for _ in range(31))
+
+        # Calculate the total bill
+        total_bill = calculate_bill(total_units, base_rate, multipliers, tiers)
+
+        # Render results in a template
+        return render_template(
+            'bill_summary.html',
+            user_id=user_id,
+            house_size_sqft=house_size,
+            num_members=num_members,
+            solar_panel_watt=solar_capacity,
+            wind_source_watt=wind_capacity,
+            season=season,
+            total_units_kwh=round(total_units, 2),
+            total_bill_tk=round(total_bill, 2)
+        )
+    except Exception as e:
+        return render_template('error.html', error_message=str(e)), 500
 
 
 @app.route('/logout')
