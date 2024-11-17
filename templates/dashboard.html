@@ -91,6 +91,32 @@
     </div>
 
     <div class="section">
+        <h2>Last 15 Days Electricity Consumption</h2>
+        {% if recent_consumption %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Units Consumed (kWh)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for record in recent_consumption %}
+                <tr>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.units }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No recent consumption data available.</p>
+        {% endif %}
+    </div>
+    
+
+
+    <div class="section">
         <a href="{{ url_for('update') }}" class="btn">Update Your Information</a>
         <a href="{{ url_for('calculate_user_bill', user_id=user_info['profile']['id'])  }}" class="btn">View Electricity Bill</a>
     </div>
