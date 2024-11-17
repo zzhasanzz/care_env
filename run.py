@@ -106,15 +106,22 @@ def authorize():
     email = user_info.get('email', '')
 
     # Insert or update user in the database
-    cursor = db.cursor()
-    cursor.execute("""
-        INSERT INTO user (google_id, display_name, email)
-        VALUES (%s, %s, %s)
-        ON DUPLICATE KEY UPDATE display_name = VALUES(display_name)
-    """, (google_id, display_name, email))
-    db.commit()
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    existing_user = cursor.fetchone()
 
-    return redirect(url_for('dashboard'))
+    if existing_user:
+        # User exists, redirect to dashboard
+        return redirect(url_for('dashboard'))   
+
+    else:
+        cursor.execute("""
+            INSERT INTO user (google_id, display_name, email)
+            VALUES (%s, %s, %s)
+            ON DUPLICATE KEY UPDATE display_name = VALUES(display_name)
+        """, (google_id, display_name, email))
+        db.commit()
+        return redirect(url_for('update'))
 
 @app.route('/get_providers/<division>')
 def get_providers(division):
