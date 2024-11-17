@@ -5,9 +5,12 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from authlib.integrations.flask_client import OAuth
 from functools import wraps
 from dotenv import load_dotenv
-from iot_simulation.electricity import simulate_daily_consumption, fetch_user_data, calculate_bill, get_db_connection
+from iot_simulation.electricity import simulate_daily_consumption, fetch_user_data, calculate_bill, get_db_connection, calculate_and_log_consumption
 import MySQLdb
 import requests
+
+
+
 
 # Load environment variables
 load_dotenv()
@@ -189,6 +192,19 @@ def dashboard():
     """, (google_id,))
     housing_data = cursor.fetchone()
 
+    # Fetch last 15 days' consumption
+    cursor.execute("""
+        SELECT consumption_date, units_consumed
+        FROM daily_electricity_consumption
+        WHERE user_id = (
+            SELECT id FROM user WHERE google_id = %s
+        )
+        ORDER BY consumption_date DESC
+        LIMIT 15
+    """, (google_id,))
+    consumption_records = cursor.fetchall()
+
+
     # Fetch car details
     car_list = []
     if user_data['car_ids']:
@@ -205,10 +221,21 @@ def dashboard():
         'profile': user_profile,
         'details': user_data,
         'housing': housing_data,
-        'cars': car_list
+        'cars': car_list,
     }
 
-    return render_template('dashboard.html', user_info=user_info)
+     # Structure recent_consumption as a list of dictionaries
+    recent_consumption = [
+        {"date": record["consumption_date"], "units": record["units_consumed"]}
+        for record in consumption_records
+    ]
+
+
+    return render_template(
+        'dashboard.html',
+        user_info=user_info,
+        recent_consumption=recent_consumption
+    )
 
 
 @app.route('/update_user', methods=['POST'])
@@ -285,6 +312,18 @@ def update_user():
     db.commit()
 
     return redirect(url_for('update'))
+
+@app.route('/log_consumption', methods=['GET'])
+def log_consumption():
+    """
+    Calculate and log daily consumption for all users for the last 30 days.
+    """
+    try:
+        calculate_and_log_consumption()
+        return "Daily consumption logged successfully for all users.", 200
+    except Exception as e:
+        return f"Error: {e}", 500
+
 
 @app.route('/calculate_bill/<int:user_id>', methods=['GET'])
 def calculate_user_bill(user_id):

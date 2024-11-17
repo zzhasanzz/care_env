@@ -1,7 +1,12 @@
 import MySQLdb
 import numpy as np
 import os
+import datetime
+from dotenv import load_dotenv
 # from db import get_db_connection
+
+load_dotenv()  # This loads environment variables from the .env file
+
 
 # Define appliances and their power ratings with usage hours
 appliances = {
@@ -48,6 +53,7 @@ MYSQL_DATABASE = "care_env"
 
 
 def get_db_connection():
+    print(f"MYSQL_HOST={MYSQL_HOST}, MYSQL_USER={MYSQL_USER}, MYSQL_PASSWORD={MYSQL_PASSWORD}, MYSQL_DATABASE={MYSQL_DATABASE}")
     try:
         conn = MySQLdb.connect(
             host=MYSQL_HOST,
@@ -59,6 +65,7 @@ def get_db_connection():
     except MySQLdb.Error as err:
         print(f"Error: Unable to connect to the database. {err}")
         raise
+
     
 def fetch_user_data(user_id):
     """
@@ -183,6 +190,78 @@ def simulate_daily_consumption(square_footage, num_members, season="summer", sol
 
 
 
+def fetch_all_users():
+    """
+    Fetch all users and their housing details for calculating daily consumption.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("""
+        SELECT u.id AS user_id, u.electricity_provider AS utility_provider_id, 
+               uh.house_size_sqft, uh.num_members, uh.solar_panel_watt, uh.wind_source_watt
+        FROM user u
+        LEFT JOIN user_housing uh ON u.id = uh.user_id
+    """)
+    users = cursor.fetchall()  # Corrected this line
+    cursor.close()
+    conn.close()
+    return users
+
+
+def log_daily_consumption(user_id, utility_provider_id, date, units_consumed):
+    """
+    Log daily consumption into the daily_electricity_consumption table.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        query = """
+            INSERT INTO daily_electricity_consumption (user_id, utility_provider_id, consumption_date, units_consumed)
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                units_consumed = VALUES(units_consumed);
+        """
+        cursor.execute(query, (user_id, utility_provider_id, date, units_consumed))
+        conn.commit()
+    except MySQLdb.IntegrityError as e:
+        print(f"IntegrityError: {e} for user_id={user_id}, date={date}")
+    except MySQLdb.Error as e:
+        print(f"MySQL Error: {e}")
+    finally:
+        cursor.close()
+        conn.close()
+
+
+
+def calculate_and_log_consumption():
+    """
+    Calculate and log daily consumption for all users for the last 30 days.
+    """
+    all_users = fetch_all_users()
+    today = datetime.date.today()
+
+    for user in all_users:
+        user_id = user['user_id']
+        utility_provider_id = user['utility_provider_id']
+        house_size = user['house_size_sqft']
+        num_members = user['num_members']
+        solar_capacity = user['solar_panel_watt']
+        wind_capacity = user['wind_source_watt']
+
+        # Simulate consumption for the last 30 days
+        for day_offset in range(30):
+            date = today - datetime.timedelta(days=day_offset)
+            units_consumed = simulate_daily_consumption(
+                house_size, num_members, season="summer", 
+                solar_capacity=solar_capacity, wind_capacity=wind_capacity
+            )
+            print(f"User {user_id}, Date {date}: {units_consumed} kWh")  # Debugging
+            log_daily_consumption(user_id, utility_provider_id, date, units_consumed)
+
+
+
+
 def calculate_bill(total_units, base_rate, multipliers, tiers, service_charge=10, demand_charge=30, meter_rent=10, vat_rate=0.05):
     """
     Calculate the total electricity bill for a given number of units with fixed charges and VAT.
@@ -249,8 +328,9 @@ def main(user_id):
 if __name__ == "__main__":
     # Replace 1 with the user_id of the logged-in user
     main(user_id=1)
+    calculate_and_log_consumption()
+
 
 
 
 # https://bdepoint.com/electric-bill-calculation-bangladesh/
-
