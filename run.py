@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 from iot_simulation.electricity import simulate_daily_consumption, fetch_user_data, calculate_bill, get_db_connection, calculate_and_log_consumption
 import MySQLdb
 import requests
-
+import io
+import base64
 
 
 
@@ -167,7 +168,7 @@ def dashboard():
 
     # Fetch user details
     cursor.execute("""
-        SELECT u.id, u.display_name, u.email, u.phone, u.address, u.division,
+        SELECT u.display_name, u.email, u.phone, u.address, u.division,
                up.provider_name AS electricity_provider,
                uw.provider_name AS water_provider,
                ug.provider_name AS gas_provider, u.gas_type, u.car_ids
@@ -192,9 +193,9 @@ def dashboard():
     """, (google_id,))
     housing_data = cursor.fetchone()
 
-    # Fetch last 15 days' consumption
+    # Fetch last 15 days' consumption and daily bills
     cursor.execute("""
-        SELECT consumption_date, units_consumed
+        SELECT consumption_date, units_consumed, daily_bill
         FROM daily_electricity_consumption
         WHERE user_id = (
             SELECT id FROM user WHERE google_id = %s
@@ -224,9 +225,9 @@ def dashboard():
         'cars': car_list,
     }
 
-     # Structure recent_consumption as a list of dictionaries
+    # Structure `recent_consumption`
     recent_consumption = [
-        {"date": record["consumption_date"], "units": record["units_consumed"]}
+        {"date": record["consumption_date"].strftime("%Y-%m-%d"), "units": record["units_consumed"], "bill": record["daily_bill"]}
         for record in consumption_records
     ]
 
@@ -234,7 +235,7 @@ def dashboard():
     return render_template(
         'dashboard.html',
         user_info=user_info,
-        recent_consumption=recent_consumption
+        recent_consumption=recent_consumption,
     )
 
 
@@ -324,49 +325,78 @@ def log_consumption():
     except Exception as e:
         return f"Error: {e}", 500
 
+@app.route('/bills')
+@login_required
+def view_electricity_bills():
+    user_profile = session['profile']
+    google_id = user_profile['id']
 
-@app.route('/calculate_bill/<int:user_id>', methods=['GET'])
-def calculate_user_bill(user_id):
-    """
-    Route to calculate electricity consumption and bill for a user and render the result.
-    """
-    try:
-        # Fetch user data from the database
-        conn = get_db_connection()
-        user_data = fetch_user_data(user_id)
-        house_size = user_data['house_size_sqft']
-        num_members = user_data['num_members']
-        solar_capacity = user_data['solar_panel_watt']
-        wind_capacity = user_data['wind_source_watt']
-        base_rate = user_data['base_rate']
-        season = "summer"
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    # Fetch user ID
+    cursor.execute("""
+        SELECT u.id AS user_id
+        FROM user u
+        WHERE u.google_id = %s
+    """, (google_id,))
+    user = cursor.fetchone()
 
-        # Billing configuration
-        multipliers = [1.00, 1.35, 1.41, 1.48, 2.63]
-        tiers = [75, 125, 100, 200, float('inf')]
+    if not user:
+        return "User not found.", 404
 
-        # Simulate monthly consumption
-        total_units = sum(simulate_daily_consumption(
-            house_size, num_members, season, solar_capacity, wind_capacity
-        ) for _ in range(31))
+    user_id = user['user_id']
 
-        # Calculate the total bill
-        total_bill = calculate_bill(total_units, base_rate, multipliers, tiers)
+    # Fetch aggregated monthly consumption and bill
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS bill_month, 
+            YEAR(consumption_date) AS bill_year, 
+            SUM(units_consumed) AS total_units, 
+            SUM(daily_bill) AS total_bill,
+            'due' AS payment_status -- For now, set all bills as 'due'
+        FROM daily_electricity_consumption
+        WHERE user_id = %s
+        GROUP BY bill_year, bill_month
+        ORDER BY bill_year DESC, bill_month DESC
+    """, (user_id,))
+    bills = cursor.fetchall()
+    cursor.close()
 
-        # Render results in a template
-        return render_template(
-            'bill_summary.html',
-            user_id=user_id,
-            house_size_sqft=house_size,
-            num_members=num_members,
-            solar_panel_watt=solar_capacity,
-            wind_source_watt=wind_capacity,
-            season=season,
-            total_units_kwh=round(total_units, 2),
-            total_bill_tk=round(total_bill, 2)
-        )
-    except Exception as e:
-        return render_template('error.html', error_message=str(e)), 500
+    # Render the updated template
+    return render_template('electricity_bills.html', bills=bills)
+
+@app.route('/bills/<int:month>/<int:year>')
+@login_required
+def view_electricity_bill_detail(month, year):
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    # Fetch user ID
+    cursor.execute("""
+        SELECT u.id AS user_id
+        FROM user u
+        WHERE u.google_id = %s
+    """, (google_id,))
+    user = cursor.fetchone()
+
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['user_id']
+
+    # Fetch detailed consumption for the given month and year
+    cursor.execute("""
+        SELECT consumption_date, units_consumed, daily_bill
+        FROM daily_electricity_consumption
+        WHERE user_id = %s AND MONTH(consumption_date) = %s AND YEAR(consumption_date) = %s
+        ORDER BY consumption_date
+    """, (user_id, month, year))
+    bill_details = cursor.fetchall()
+    cursor.close()
+
+    # Render bill details
+    return render_template('electricity_bill_detail.html', bill_details=bill_details, month=month, year=year)
+
 
 
 @app.route('/logout')

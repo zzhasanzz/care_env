@@ -208,22 +208,36 @@ def fetch_all_users():
     return users
 
 
-def log_daily_consumption(user_id, utility_provider_id, date, units_consumed):
+def log_daily_consumption(user_id, utility_provider_id, date, units_consumed, base_rate, multipliers, tiers):
     """
-    Log daily consumption into the daily_electricity_consumption table.
+    Log daily consumption into the daily_electricity_consumption table with daily bill.
+    Ensures rows are inserted or updated only when necessary.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
+        # Calculate daily bill using the billing logic
+        daily_bill = calculate_bill(
+            total_units=units_consumed,
+            base_rate=base_rate,
+            multipliers=multipliers,
+            tiers=tiers
+        )
+
+        # Insert or conditionally update the daily consumption and daily bill
         query = """
-            INSERT INTO daily_electricity_consumption (user_id, utility_provider_id, consumption_date, units_consumed)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO daily_electricity_consumption 
+            (user_id, utility_provider_id, consumption_date, units_consumed, daily_bill)
+            VALUES (%s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
-                units_consumed = VALUES(units_consumed);
+                units_consumed = IFNULL(units_consumed, VALUES(units_consumed)),
+                daily_bill = IFNULL(daily_bill, VALUES(daily_bill));
         """
-        cursor.execute(query, (user_id, utility_provider_id, date, units_consumed))
+        # Execute the query
+        cursor.execute(query, (user_id, utility_provider_id, date, units_consumed, daily_bill))
         conn.commit()
+
     except MySQLdb.IntegrityError as e:
         print(f"IntegrityError: {e} for user_id={user_id}, date={date}")
     except MySQLdb.Error as e:
@@ -234,12 +248,17 @@ def log_daily_consumption(user_id, utility_provider_id, date, units_consumed):
 
 
 
+
 def calculate_and_log_consumption():
     """
-    Calculate and log daily consumption for all users for the last 30 days.
+    Calculate and log daily consumption and daily bill for all users for the last 30 days.
     """
     all_users = fetch_all_users()
     today = datetime.date.today()
+
+    # Billing configuration
+    multipliers = [1.00, 1.35, 1.41, 1.48, 2.63]
+    tiers = [75, 125, 100, 200, float('inf')]
 
     for user in all_users:
         user_id = user['user_id']
@@ -248,17 +267,18 @@ def calculate_and_log_consumption():
         num_members = user['num_members']
         solar_capacity = user['solar_panel_watt']
         wind_capacity = user['wind_source_watt']
+        base_rate = fetch_user_data(user_id)['base_rate']  # Get the base rate from user data
 
-        # Simulate consumption for the last 30 days
-        for day_offset in range(30):
+        # Simulate consumption for the last 90 days
+        for day_offset in range(90):
             date = today - datetime.timedelta(days=day_offset)
+            #print(f"Processing date: {date}") 
             units_consumed = simulate_daily_consumption(
-                house_size, num_members, season="summer", 
+                house_size, num_members, season="summer",
                 solar_capacity=solar_capacity, wind_capacity=wind_capacity
             )
             print(f"User {user_id}, Date {date}: {units_consumed} kWh")  # Debugging
-            log_daily_consumption(user_id, utility_provider_id, date, units_consumed)
-
+            log_daily_consumption(user_id, utility_provider_id, date, units_consumed, base_rate, multipliers, tiers)
 
 
 
