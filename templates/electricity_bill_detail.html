@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill Details</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Bill Details for {{ month }}/{{ year }}</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Units Consumed (kWh)</th>
+                <th>Daily Bill (Tk)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in bill_details %}
+            <tr>
+                <td>{{ record.consumption_date }}</td>
+                <td>{{ record.units_consumed }}</td>
+                <td>{{ record.daily_bill }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p><a href="{{ url_for('view_electricity_bills') }}">Back to Bills</a></p>
+</body>
+</html>

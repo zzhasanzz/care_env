@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>Dashboard</title>
     <style>
         body {
@@ -91,36 +92,83 @@
     </div>
 
     <div class="section">
-        <h2>Last 15 Days Electricity Consumption</h2>
-        {% if recent_consumption %}
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Units Consumed (kWh)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for record in recent_consumption %}
-                <tr>
-                    <td>{{ record.date }}</td>
-                    <td>{{ record.units }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p>No recent consumption data available.</p>
-        {% endif %}
-    </div>
+        <h2>Daily Electricity Consumption (Last 15 Days)</h2>
+        <canvas id="dailyConsumptionChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>   
     
-
-
+    <div class="section">
+        <h2>Bills</h2>
+        <a href="{{ url_for('view_electricity_bills') }}" class="btn">View Electricity Bills</a>
+    </div>    
+    
     <div class="section">
         <a href="{{ url_for('update') }}" class="btn">Update Your Information</a>
-        <a href="{{ url_for('calculate_user_bill', user_id=user_info['details']['id'])  }}" class="btn">View Electricity Bill</a>
     </div>
 
     <p><a href="{{ url_for('logout') }}">Logout</a></p>
+    <script>
+        // Get recent consumption data from the template
+        const recentConsumption = {{recent_consumption | tojson}};
+        
+        // Extract the dates, units, and bills for the graph
+        const labels = recentConsumption.map(record => record.date);
+        const units = recentConsumption.map(record => record.units);
+        const bills = recentConsumption.map(record => record.bill);
+    
+        // Create the chart
+        const ctx = document.getElementById('dailyConsumptionChart').getContext('2d');
+        const dailyConsumptionChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels, // Dates
+                datasets: [
+                    {
+                        label: 'Consumed Taka (Tk)',
+                        data: bills, // Daily Bills
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Consumed Units (kWh)',
+                        data: units, // Units Consumed
+                        borderColor: 'rgba(255, 205, 86, 1)',
+                        backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Value'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    
 </body>
 </html>

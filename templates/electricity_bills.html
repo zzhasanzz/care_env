@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Bills</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .btn {
+            display: inline-block;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+        .btn.due {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <h1>Monthly Electricity Bills</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th>Year</th>
+                <th>Total Units (kWh)</th>
+                <th>Total Bill (Tk)</th>
+                <th>Payment Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for bill in bills %}
+            <tr>
+                <td>{{ bill.bill_month }}</td>
+                <td>{{ bill.bill_year }}</td>
+                <td>{{ bill.total_units }}</td>
+                <td>{{ bill.total_bill }}</td>
+                <td>{{ bill.payment_status }}</td>
+                <td>
+                    <a href="{{ url_for('view_electricity_bill_detail', month=bill.bill_month, year=bill.bill_year) }}" class="btn">View Bill</a>
+                    {% if bill.payment_status == 'due' %}
+                    <a href="#" class="btn due">Pay</a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p><a href="{{ url_for('dashboard') }}">Back to Dashboard</a></p>
+</body>
+</html>
