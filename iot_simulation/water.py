@@ -1,4 +1,11 @@
+import MySQLdb
 import numpy as np
+import os
+import datetime
+from dotenv import load_dotenv
+# from db import get_db_connection
+
+load_dotenv()  # This loads environment variables from the .env file
 
 # Define water usage categories with random distributions
 water_usage_categories = {
@@ -39,6 +46,26 @@ water_usage_categories = {
     }
 }
 
+YSQL_HOST = os.getenv('MYSQL_HOST')
+MYSQL_USER = os.getenv('MYSQL_USER')
+MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD')
+MYSQL_DATABASE = "care_env"
+
+
+def get_db_connection():
+    print(f"MYSQL_HOST={MYSQL_HOST}, MYSQL_USER={MYSQL_USER}, MYSQL_PASSWORD={MYSQL_PASSWORD}, MYSQL_DATABASE={MYSQL_DATABASE}")
+    try:
+        conn = MySQLdb.connect(
+            host=MYSQL_HOST,
+            user=MYSQL_USER,
+            passwd=MYSQL_PASSWORD,
+            database=MYSQL_DATABASE
+        )
+        return conn
+    except MySQLdb.Error as err:
+        print(f"Error: Unable to connect to the database. {err}")
+        raise
+
 # Seasonal adjustments (multipliers)
 seasonal_adjustments = {
     "summer": {
@@ -56,6 +83,74 @@ seasonal_adjustments = {
         "dishwasher": 0.9  # 10% reduction
     }
 }
+
+def fetch_all_users():
+    """
+    Fetch all users and their housing details for calculating water consumption.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute("""
+        SELECT u.id AS user_id, uh.house_size_sqft, uh.num_members, u.water_provider, UP.unit_price
+        FROM user u
+        JOIN user_housing uh ON u.id = uh.user_id
+        JOIN utility_providers UP ON u.water_provider = UP.id
+        WHERE u.water_provider IS NOT NULL
+    """)
+    users = cursor.fetchall()
+
+    cursor.close()
+    conn.close()
+    return users
+
+def log_daily_water_consumption(user_id, utility_provider_id, date, liters_consumed, unit_price):
+    """
+    Log daily water consumption into the database.
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        daily_bill = (liters_consumed / 1000) * unit_price  # Tariff per 1000 liters
+        query = """
+            INSERT INTO daily_water_consumption 
+            (user_id, utility_provider_id, consumption_date, liters_consumed, daily_bill)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                liters_consumed = VALUES(liters_consumed),
+                daily_bill = VALUES(daily_bill);
+        """
+        cursor.execute(query, (user_id, utility_provider_id, date, liters_consumed, daily_bill))
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+def calculate_and_log_water_consumption():
+    """
+    Calculate and log daily water consumption for all users for the past 90 days.
+    """
+    all_users = fetch_all_users()
+    today = datetime.date.today()
+
+    for user in all_users:
+        for day_offset in range(90):
+            date = today - datetime.timedelta(days=day_offset)
+            liters_consumed = simulate_daily_water_usage(
+                square_footage=user['house_size_sqft'],
+                num_members=user['num_members'],
+                has_garden=True,
+                num_cars=1,
+                season="summer"
+            )
+            log_daily_water_consumption(
+                user_id=user['user_id'],
+                utility_provider_id=user['water_provider'],
+                date=date,
+                liters_consumed=liters_consumed,
+                unit_price=user['unit_price']
+            )
 
 # Function to simulate daily water usage
 def simulate_daily_water_usage(square_footage, num_members, has_garden=True, num_cars=1, season="summer"):

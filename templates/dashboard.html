@@ -95,6 +95,12 @@
         <h2>Daily Electricity Consumption (Last 15 Days)</h2>
         <canvas id="dailyConsumptionChart" style="max-width: 65%; height: 300px;"></canvas>
     </div>   
+
+    <div class="section">
+        <h2>Electricity Usage Histogram</h2>
+        <canvas id="electricityHistogramChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+    
     
     <div class="section">
         <h2>Bills</h2>
@@ -169,6 +175,60 @@
             }
         });
     </script>
+
+<script>
+  // Get monthly electricity data from the backend
+const monthlyElectricityData = {{ monthly_electricity_data | tojson }};
+
+// Format month and year labels for histogram
+const histogramLabels = monthlyElectricityData.map(
+    record => `${record.bill_month}/${record.bill_year}`
+);
+
+// Extract total units consumed
+const histogramData = monthlyElectricityData.map(record => record.total_units);
+
+// Create the histogram chart
+const ctxHistogram = document.getElementById('electricityHistogramChart').getContext('2d');
+const electricityHistogramChart = new Chart(ctxHistogram, {
+    type: 'bar',
+    data: {
+        labels: histogramLabels, // Formatted Month/Year
+        datasets: [{
+            label: 'Electricity Usage (kWh)',
+            data: histogramData, // Total Units Consumed
+            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+            borderColor: 'rgba(75, 192, 192, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top'
+            }
+        },
+        scales: {
+            x: {
+                title: {
+                    display: true,
+                    text: 'Month/Year'
+                }
+            },
+            y: {
+                title: {
+                    display: true,
+                    text: 'Electricity Usage (kWh)'
+                },
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+
     
 </body>
 </html>
