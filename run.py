@@ -205,6 +205,21 @@ def dashboard():
     """, (google_id,))
     consumption_records = cursor.fetchall()
 
+    # Fetch aggregated monthly electricity usage
+    cursor.execute("""
+        SELECT 
+        MONTH(consumption_date) AS bill_month, 
+        YEAR(consumption_date) AS bill_year, 
+        SUM(units_consumed) AS total_units
+        FROM daily_electricity_consumption
+        WHERE user_id = (
+            SELECT id FROM user WHERE google_id = %s
+        )
+        GROUP BY bill_year, bill_month
+        ORDER BY bill_year DESC, bill_month DESC;
+    """, (google_id,))
+    monthly_electricity_data = cursor.fetchall()
+
 
     # Fetch car details
     car_list = []
@@ -236,6 +251,7 @@ def dashboard():
         'dashboard.html',
         user_info=user_info,
         recent_consumption=recent_consumption,
+        monthly_electricity_data=monthly_electricity_data
     )
 
 
