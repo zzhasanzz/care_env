@@ -46,7 +46,7 @@ water_usage_categories = {
     }
 }
 
-YSQL_HOST = os.getenv('MYSQL_HOST')
+MYSQL_HOST = os.getenv('MYSQL_HOST')
 MYSQL_USER = os.getenv('MYSQL_USER')
 MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD')
 MYSQL_DATABASE = "care_env"
@@ -87,69 +87,149 @@ seasonal_adjustments = {
 def fetch_all_users():
     """
     Fetch all users and their housing details for calculating water consumption.
+    Calculates num_cars from car_ids (comma-separated list).
     """
     conn = get_db_connection()
     cursor = conn.cursor(MySQLdb.cursors.DictCursor)
 
     cursor.execute("""
-        SELECT u.id AS user_id, uh.house_size_sqft, uh.num_members, u.water_provider, UP.unit_price
+        SELECT 
+            u.id AS user_id, 
+            uh.house_size_sqft, 
+            uh.num_members, 
+            u.water_provider, 
+            UP.unit_price,
+            u.car_ids  # We'll process this to get num_cars
         FROM user u
         JOIN user_housing uh ON u.id = uh.user_id
         JOIN utility_providers UP ON u.water_provider = UP.id
         WHERE u.water_provider IS NOT NULL
     """)
     users = cursor.fetchall()
+    
+    # Process car_ids to calculate num_cars
+    for user in users:
+        if user['car_ids'] and user['car_ids'].strip():
+            # Count non-empty items in comma-separated list
+            user['num_cars'] = len([x for x in user['car_ids'].split(',') if x.strip()])
+        else:
+            user['num_cars'] = 0  # No cars if empty or None
 
     cursor.close()
     conn.close()
     return users
 
+
 def log_daily_water_consumption(user_id, utility_provider_id, date, liters_consumed, unit_price):
     """
-    Log daily water consumption into the database.
+    Log daily water consumption into the daily_water_consumption table with daily bill.
+    Only inserts new records or updates if they don't exist.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        daily_bill = (liters_consumed / 1000) * unit_price  # Tariff per 1000 liters
+        # First check if record already exists for this date and user
+        cursor.execute("""
+            SELECT 1 FROM daily_water_consumption 
+            WHERE user_id = %s AND consumption_date = %s
+        """, (user_id, date))
+        
+        if cursor.fetchone():
+            print(f"Water record already exists for user {user_id} on {date} - skipping")
+            return
+
+        # Calculate daily bill (convert liters to cubic meters if needed)
+        # Assuming unit_price is per 1000 liters (1 cubic meter)
+        daily_bill = (liters_consumed / 1000) * unit_price
+
+        # Insert new record only
         query = """
             INSERT INTO daily_water_consumption 
             (user_id, utility_provider_id, consumption_date, liters_consumed, daily_bill)
             VALUES (%s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                liters_consumed = VALUES(liters_consumed),
-                daily_bill = VALUES(daily_bill);
         """
         cursor.execute(query, (user_id, utility_provider_id, date, liters_consumed, daily_bill))
         conn.commit()
+        print(f"Logged water consumption for user {user_id} on {date}: {liters_consumed:.2f} liters")
+
+    except MySQLdb.IntegrityError as e:
+        print(f"IntegrityError logging water consumption: {e} for user_id={user_id}, date={date}")
+    except MySQLdb.Error as e:
+        print(f"MySQL Error logging water consumption: {e}")
     finally:
         cursor.close()
         conn.close()
 
 def calculate_and_log_water_consumption():
     """
-    Calculate and log daily water consumption for all users for the past 90 days.
+    Calculate and log daily water consumption for all users, only filling missing dates.
+    For users with no existing data, generates records from start of current month.
     """
     all_users = fetch_all_users()
     today = datetime.date.today()
+    current_month_start = datetime.date(today.year, today.month, 1)
 
     for user in all_users:
-        for day_offset in range(90):
-            date = today - datetime.timedelta(days=day_offset)
+        user_id = user['user_id']
+        utility_provider_id = user['water_provider']
+        house_size = user['house_size_sqft']
+        num_members = user['num_members']
+        num_cars = user['num_cars']
+        unit_price = user['unit_price']
+
+        # Get the most recent consumption date for this user
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT MAX(consumption_date) as last_date 
+            FROM daily_water_consumption 
+            WHERE user_id = %s
+        """, (user_id,))
+        result = cursor.fetchone()
+        last_date = result[0] if result and result[0] else None
+        cursor.close()
+        conn.close()
+
+        # Determine the starting date for simulation
+        if last_date:
+            start_date = last_date + datetime.timedelta(days=1)
+            if start_date > today:
+                print(f"User {user_id} already up to date (last record: {last_date})")
+                continue
+        else:
+            # For new users, simulate from start of current month
+            start_date = current_month_start
+
+        # Calculate number of days to simulate
+        days_to_simulate = (today - start_date).days + 1
+        if days_to_simulate <= 0:
+            continue
+
+        print(f"Generating {days_to_simulate} days of water data for user {user_id} from {start_date}")
+
+        # Simulate consumption for each missing day
+        for day_offset in range(days_to_simulate):
+            date = start_date + datetime.timedelta(days=day_offset)
+            
+            # Determine season based on month
+            month = date.month
+            season = "summer" if 4 <= month <= 9 else "winter"
+            
             liters_consumed = simulate_daily_water_usage(
-                square_footage=user['house_size_sqft'],
-                num_members=user['num_members'],
-                has_garden=True,
-                num_cars=1,
-                season="summer"
+                square_footage=house_size,
+                num_members=num_members,
+                has_garden=True,  # Default assumption
+                num_cars=num_cars,
+                season=season
             )
+            
             log_daily_water_consumption(
-                user_id=user['user_id'],
-                utility_provider_id=user['water_provider'],
+                user_id=user_id,
+                utility_provider_id=utility_provider_id,
                 date=date,
                 liters_consumed=liters_consumed,
-                unit_price=user['unit_price']
+                unit_price=unit_price
             )
 
 # Function to simulate daily water usage
@@ -180,31 +260,70 @@ def simulate_daily_water_usage(square_footage, num_members, has_garden=True, num
 
     return daily_water_usage
 
-# Function to calculate monthly water usage
-def simulate_monthly_water_usage(square_footage, num_members, has_garden=True, num_cars=1, days=31, season="summer"):
-    daily_usages = [
-        simulate_daily_water_usage(square_footage, num_members, has_garden, num_cars, season)
-        for _ in range(days)
-    ]
-    return sum(daily_usages)
+def main(user_id):
+    """
+    Main function to calculate AND LOG daily water consumption for a user.
+    Shows existing data and ensures missing days are filled.
+    """
+    try:
+        # First ensure all consumption data is logged
+        calculate_and_log_water_consumption()
+        
+        # Now fetch and display the data
+        conn = get_db_connection()
+        cursor = conn.cursor(MySQLdb.cursors.DictCursor)
+        
+        # Get user details
+        cursor.execute("""
+            SELECT 
+                u.id,
+                uh.house_size_sqft,
+                uh.num_members,
+                u.water_provider,
+                up.unit_price,
+                u.car_ids
+            FROM user u
+            JOIN user_housing uh ON u.id = uh.user_id
+            JOIN utility_providers up ON u.water_provider = up.id
+            WHERE u.id = %s
+        """, (user_id,))
+        user_data = cursor.fetchone()
+        
+        if not user_data:
+            raise ValueError("User not found or missing water provider")
+        
+        # Get current month consumption summary
+        current_month_start = datetime.date.today().replace(day=1)
+        cursor.execute("""
+            SELECT 
+                SUM(liters_consumed) AS total_liters,
+                SUM(daily_bill) AS total_bill,
+                COUNT(*) AS days_recorded
+            FROM daily_water_consumption
+            WHERE user_id = %s
+            AND consumption_date BETWEEN %s AND %s
+        """, (user_id, current_month_start, datetime.date.today()))
+        monthly_data = cursor.fetchone()
+        
+        cursor.close()
+        conn.close()
+        
+        # Display results
+        print(f"\nWater Consumption Report for User {user_id}")
+        print("----------------------------------------")
+        print(f"House Size: {user_data['house_size_sqft']} sqft")
+        print(f"Household Members: {user_data['num_members']}")
+        print(f"Current Month Usage: {monthly_data['total_liters']:.2f} liters")
+        print(f"Current Month Bill: Tk {monthly_data['total_bill']:.2f}")
+        print(f"Days Recorded: {monthly_data['days_recorded']}")
+        print("----------------------------------------")
+        
+    except Exception as e:
+        print(f"Error: {str(e)}")
 
-# Example: Simulating water usage for a household
-square_footage = 1400  # House size in sqft
-num_members = 5  # Number of members
-has_garden = True  # Garden present
-num_cars = 1  # Number of cars
-season = "summer"  # Set season to winter
+if __name__ == "__main__":
+    # Example usage
+    main(user_id=1)
 
-# Simulate daily and monthly water usage
-daily_water_usage = simulate_daily_water_usage(square_footage, num_members, has_garden, num_cars, season)
-monthly_water_usage = simulate_monthly_water_usage(square_footage, num_members, has_garden, num_cars, days=31, season=season)
-
-# Tariff per 1,000 liters
-water_tariff = 14.46  # Tk per 1,000 liters
-monthly_water_bill = (monthly_water_usage / 1000) * water_tariff
-
-print(f"Daily Water Usage ({season.title()}): {daily_water_usage:.2f} liters")
-print(f"Monthly Water Usage ({season.title()}): {monthly_water_usage:.2f} liters")
-print(f"Monthly Water Bill ({season.title()}): Tk {monthly_water_bill:.2f}")
-
+    
 # https://www.thedailystar.net/city/news/wasa-hikes-water-tariff-residential-commercial-use-1874149

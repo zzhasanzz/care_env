@@ -12,37 +12,41 @@ load_dotenv()  # This loads environment variables from the .env file
 appliances = {
     "fan": {
         "power": 0.07,
-        "summer_hours": lambda: np.random.normal(12, 2),
-        "winter_hours": lambda: np.random.poisson(3)
+        "summer_hours": lambda: np.random.normal(14, 2),  # Increased for tropical
+        "winter_hours": lambda: np.random.poisson(2)
     },
     "light": {
         "power": 0.01,
-        "daily_hours": lambda: np.random.normal(6, 1)
+        "daily_hours": lambda: np.random.normal(5, 1.5)  # Wider variation
     },
     "ac": {
-        "power": 1.4,
-        "summer_hours": lambda: np.random.uniform(2, 6),
-        "winter_hours": lambda: 0
+        "power": 1.0,
+        "summer_hours": lambda: np.random.uniform(4, 8),  # Increased max
+        "winter_hours": lambda: np.random.uniform(0, 1)   # Some winter use
     },
     "fridge": {
         "power": 0.15,
-        "daily_hours": lambda: np.random.normal(8, 0.5)
+        "daily_hours": lambda: np.random.normal(7, 1)  # Slightly reduced
     },
     "tv": {
-        "power": 0.1,
-        "daily_hours": lambda: np.random.poisson(4)
+        "power": 0.08,  # Reduced for LED TVs
+        "daily_hours": lambda: np.random.poisson(3.5)
     },
     "washing_machine": {
         "power": 0.5,
-        "daily_hours": lambda: np.random.normal(1, 0.2)
+        "daily_hours": lambda: np.random.exponential(0.4)  # Less frequent
     },
     "computer": {
-        "power": 0.2,
-        "daily_hours": lambda: np.random.normal(5, 1)
+        "power": 0.15,  # Adjusted for laptops
+        "daily_hours": lambda: np.random.normal(6, 2)  # Wider variation
     },
     "microwave": {
-        "power": 1.2,
-        "daily_hours": lambda: np.random.normal(0.5, 0.1)
+        "power": 1.0,  # Slightly reduced
+        "daily_hours": lambda: np.random.exponential(0.2)
+    },
+    "router": {
+        "power": 0.01,
+        "daily_hours": lambda: 24  # Always on
     }
 }
 
@@ -211,12 +215,22 @@ def fetch_all_users():
 def log_daily_consumption(user_id, utility_provider_id, date, units_consumed, base_rate, multipliers, tiers):
     """
     Log daily consumption into the daily_electricity_consumption table with daily bill.
-    Ensures rows are inserted or updated only when necessary.
+    Only inserts new records, doesn't update existing ones.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
+        # First check if record already exists for this date and user
+        cursor.execute("""
+            SELECT 1 FROM daily_electricity_consumption 
+            WHERE user_id = %s AND consumption_date = %s
+        """, (user_id, date))
+        
+        if cursor.fetchone():
+            print(f"Record already exists for user {user_id} on {date} - skipping")
+            return
+
         # Calculate daily bill using the billing logic
         daily_bill = calculate_bill(
             total_units=units_consumed,
@@ -225,16 +239,12 @@ def log_daily_consumption(user_id, utility_provider_id, date, units_consumed, ba
             tiers=tiers
         )
 
-        # Insert or conditionally update the daily consumption and daily bill
+        # Insert new record only
         query = """
             INSERT INTO daily_electricity_consumption 
             (user_id, utility_provider_id, consumption_date, units_consumed, daily_bill)
             VALUES (%s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE
-                units_consumed = IFNULL(units_consumed, VALUES(units_consumed)),
-                daily_bill = IFNULL(daily_bill, VALUES(daily_bill));
         """
-        # Execute the query
         cursor.execute(query, (user_id, utility_provider_id, date, units_consumed, daily_bill))
         conn.commit()
 
@@ -251,7 +261,7 @@ def log_daily_consumption(user_id, utility_provider_id, date, units_consumed, ba
 
 def calculate_and_log_consumption():
     """
-    Calculate and log daily consumption and daily bill for all users for the last 30 days.
+    Calculate and log daily consumption only for missing dates between last recorded date and today.
     """
     all_users = fetch_all_users()
     today = datetime.date.today()
@@ -267,17 +277,50 @@ def calculate_and_log_consumption():
         num_members = user['num_members']
         solar_capacity = user['solar_panel_watt']
         wind_capacity = user['wind_source_watt']
-        base_rate = fetch_user_data(user_id)['base_rate']  # Get the base rate from user data
+        base_rate = fetch_user_data(user_id)['base_rate']
 
-        # Simulate consumption for the last 90 days
-        for day_offset in range(90):
-            date = today - datetime.timedelta(days=day_offset)
-            #print(f"Processing date: {date}") 
+        # Get the most recent consumption date for this user
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT MAX(consumption_date) as last_date 
+            FROM daily_electricity_consumption 
+            WHERE user_id = %s
+        """, (user_id,))
+        result = cursor.fetchone()
+        last_date = result[0] if result and result[0] else None
+        cursor.close()
+        conn.close()
+
+        # Determine the starting date for simulation
+        if last_date:
+            # If we have records, start from day after last recorded date
+            start_date = last_date + datetime.timedelta(days=1)
+            
+            # If we're already up to date, skip this user
+            if start_date > today:
+                print(f"User {user_id} already up to date (last record: {last_date})")
+                continue
+        else:
+            # For new users, simulate last 30 days
+            start_date = today - datetime.timedelta(days=30)
+
+        # Calculate number of days to simulate (from start_date to today)
+        days_to_simulate = (today - start_date).days + 1
+
+        # Simulate consumption for each missing day
+        for day_offset in range(days_to_simulate):
+            date = start_date + datetime.timedelta(days=day_offset)
+            
+            # Determine season based on month (summer: April-September)
+            month = date.month
+            season = "summer" if 4 <= month <= 9 else "winter"
+            
             units_consumed = simulate_daily_consumption(
-                house_size, num_members, season="summer",
+                house_size, num_members, season=season,
                 solar_capacity=solar_capacity, wind_capacity=wind_capacity
             )
-            print(f"User {user_id}, Date {date}: {units_consumed} kWh")  # Debugging
+            print(f"User {user_id}, Date {date}: {units_consumed} kWh")
             log_daily_consumption(user_id, utility_provider_id, date, units_consumed, base_rate, multipliers, tiers)
 
 
