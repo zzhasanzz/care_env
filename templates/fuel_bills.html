@@ -2,35 +2,33 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Monthly Electricity Bills</title>
+    <title>Monthly Fuel Bills</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <h1>Monthly Electricity Bills</h1>
+    <h1>Monthly Fuel Bills</h1>
     <table>
         <thead>
             <tr>
                 <th>Month</th>
                 <th>Year</th>
-                <th>Total Units (kWh)</th>
+                <th>Total Liters (L)</th>
                 <th>Total Bill (Tk)</th>
                 <th>Payment Status</th>
                 <th>Action</th>
             </tr>
         </thead>
         <tbody>
-            {% for bill in bills %}
+            {% for bill in fuel_bills %}
             <tr>
-                <td>{{ bill.bill_month }}</td>
-                <td>{{ bill.bill_year }}</td>
-                <td>{{ "%.2f"|format(bill.total_units) }}</td>
-                <td>{{ "%.2f"|format(bill.total_bill) }}</td>
-                <td>{{ bill.payment_status }}</td>
+                <td>{{ bill.month }}</td>
+                <td>{{ bill.year }}</td>
+                <td>{{ bill.total_liters }}</td>
+                <td>{{ bill.total_bill }}</td>
+                <td>due</td>  <!-- assuming all bills are due for now -->
                 <td>
-                    <a href="{{ url_for('view_electricity_bill_detail', month=bill.bill_month, year=bill.bill_year) }}" class="btn">View Bill</a>
-                    {% if bill.payment_status == 'due' %}
+                    <a href="{{ url_for('view_fuel_bill_detail', month=bill.month, year=bill.year) }}" class="btn">View Bill</a>
                     <a href="#" class="btn due">Pay</a>
-                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

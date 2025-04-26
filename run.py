@@ -593,7 +593,166 @@ def view_electricity_bill_detail(month, year):
     # Render bill details
     return render_template('electricity_bill_detail.html', bill_details=bill_details, month=month, year=year)
 
+@app.route('/water_bills')
+@login_required
+def view_water_bills():
+    user_profile = session['profile']
+    google_id = user_profile['id']
 
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month,
+            YEAR(consumption_date) AS year,
+            SUM(liters_consumed) AS total_liters,
+            SUM(daily_bill) AS total_bill
+        FROM daily_water_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    bills = cursor.fetchall()
+    cursor.close()
+
+    return render_template('water_bills.html', bills=bills)
+
+
+@app.route('/water_bills/<int:month>/<int:year>')
+@login_required
+def view_water_bill_detail(month, year):
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    cursor.execute("""
+        SELECT consumption_date, liters_consumed, daily_bill
+        FROM daily_water_consumption
+        WHERE user_id = %s AND MONTH(consumption_date) = %s AND YEAR(consumption_date) = %s
+        ORDER BY consumption_date
+    """, (user_id, month, year))
+    bill_details = cursor.fetchall()
+    cursor.close()
+
+    return render_template('water_bill_detail.html', bill_details=bill_details, month=month, year=year)
+
+# Fuel Bills page
+@app.route('/fuel_bills')
+@login_required
+def view_fuel_bills():
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    cursor.execute("""
+        SELECT MONTH(consumption_date) AS month, YEAR(consumption_date) AS year,
+               SUM(fuel_used_liters) AS total_liters, SUM(fuel_cost) AS total_bill
+        FROM daily_fuel_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    fuel_bills = cursor.fetchall()
+
+    return render_template('fuel_bills.html', fuel_bills=fuel_bills)
+
+# Fuel Bill Detail page
+@app.route('/fuel_bills/<int:month>/<int:year>')
+@login_required
+def view_fuel_bill_detail(month, year):
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    cursor.execute("""
+        SELECT consumption_date, fuel_used_liters, fuel_cost
+        FROM daily_fuel_consumption
+        WHERE user_id = %s AND MONTH(consumption_date) = %s AND YEAR(consumption_date) = %s
+        ORDER BY consumption_date
+    """, (user_id, month, year))
+    fuel_bill_details = cursor.fetchall()
+
+    return render_template('fuel_bill_detail.html', fuel_bill_details=fuel_bill_details, month=month, year=year)
+
+
+# Gas Bills page
+@app.route('/gas_bills')
+@login_required
+def view_gas_bills():
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    cursor.execute("""
+        SELECT MONTH(consumption_date) AS month, YEAR(consumption_date) AS year,
+               SUM(gas_used_cubic_meters) AS total_cubic_meters, SUM(gas_cost) AS total_bill
+        FROM daily_gas_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    gas_bills = cursor.fetchall()
+
+    return render_template('gas_bills.html', gas_bills=gas_bills)
+
+# Gas Bill Detail page
+@app.route('/gas_bills/<int:month>/<int:year>')
+@login_required
+def view_gas_bill_detail(month, year):
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    cursor.execute("""
+        SELECT consumption_date, gas_used_cubic_meters, gas_cost
+        FROM daily_gas_consumption
+        WHERE user_id = %s AND MONTH(consumption_date) = %s AND YEAR(consumption_date) = %s
+        ORDER BY consumption_date
+    """, (user_id, month, year))
+    gas_bill_details = cursor.fetchall()
+
+    return render_template('gas_bill_detail.html', gas_bill_details=gas_bill_details, month=month, year=year)
 
 @app.route('/logout')
 def logout():

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Gas Bill Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <h1>Gas Bill Details for {{ month }}/{{ year }}</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Gas Used (Cubic Meters)</th>
+                <th>Daily Bill (Tk)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in gas_bill_details %}
+            <tr>
+                <td>{{ record.consumption_date }}</td>
+                <td>{{ record.gas_used_cubic_meters }}</td>
+                <td>{{ record.gas_cost }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <p><a href="{{ url_for('view_gas_bills') }}">Back to Bills</a></p>
+</body>
+</html>
