@@ -1,5 +1,28 @@
 import MySQLdb
+import MySQLdb
 import numpy as np
+import os
+from datetime import date, timedelta
+from dotenv import load_dotenv
+import calendar
+
+load_dotenv()
+
+MYSQL_HOST = os.getenv('MYSQL_HOST')
+MYSQL_USER = os.getenv('MYSQL_USER')
+MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD')
+MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'care_env')
+
+def get_db_connection():
+    conn = MySQLdb.connect(
+        host=MYSQL_HOST,
+        user=MYSQL_USER,
+        passwd=MYSQL_PASSWORD,
+        database=MYSQL_DATABASE
+    )
+    return conn
+
+# Constants
 import os
 from datetime import date, timedelta
 from dotenv import load_dotenv
@@ -27,7 +50,14 @@ NON_METERED_DOUBLE_BURNER_MONTHLY = 88  # Cubic meters
 SINGLE_BURNER_RATE = 750  # Tk/month
 DOUBLE_BURNER_RATE = 800  # Tk/month
 METERED_GAS_PRICE = 9.10  # Tk/cubic meter
+METERED_GAS_PRICE = 9.10  # Tk/cubic meter
 
+def simulate_metered_daily_gas_consumption(num_members):
+    activities = {
+        "cooking": lambda: np.random.normal(0.5, 0.1) * num_members,
+        "water_heating": lambda: np.random.normal(0.3, 0.05) * num_members,
+        "space_heating": lambda: np.random.uniform(1.0, 2.0)
+    }
 def simulate_metered_daily_gas_consumption(num_members):
     activities = {
         "cooking": lambda: np.random.normal(0.5, 0.1) * num_members,
