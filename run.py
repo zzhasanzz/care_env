@@ -200,7 +200,7 @@ def dashboard():
     """, (user_id,))
     housing_data = cursor.fetchone()
 
-    # Fetch last 15 days' consumption and daily bills
+    # Fetch last 15 days' electricity consumption and daily bills
     cursor.execute("""
         SELECT consumption_date, units_consumed, daily_bill
         FROM daily_electricity_consumption
@@ -209,6 +209,17 @@ def dashboard():
         LIMIT 15
     """, (user_id,))
     consumption_records = cursor.fetchall()
+
+    # Fetch last 15 days' water consumption and daily bills
+    cursor.execute("""
+        SELECT consumption_date, liters_consumed, daily_bill
+        FROM daily_water_consumption
+        WHERE user_id = %s
+        ORDER BY consumption_date DESC
+        LIMIT 15
+    """, (user_id,))
+    water_consumption_records = cursor.fetchall()
+
 
     # Fetch aggregated monthly electricity usage
     cursor.execute("""
@@ -242,17 +253,29 @@ def dashboard():
         'cars': car_list,
     }
 
-    # Structure `recent_consumption`
+    # Structure  electricity `recent_consumption`
     recent_consumption = [
         {"date": record["consumption_date"].strftime("%Y-%m-%d"), "units": record["units_consumed"], "bill": record["daily_bill"]}
         for record in consumption_records
     ]
 
+    # Structure recent_water_consumption
+    recent_water_consumption = [
+        {
+            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "liters": record["liters_consumed"],
+            "bill": record["daily_bill"]
+        }
+        for record in water_consumption_records
+    ]
+
+
     return render_template(
         'dashboard.html',
         user_info=user_info,
         recent_consumption=recent_consumption,
-        monthly_electricity_data=monthly_electricity_data
+        monthly_electricity_data=monthly_electricity_data,
+        recent_water_consumption=recent_water_consumption
     )
 
 
