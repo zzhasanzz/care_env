@@ -10,6 +10,7 @@ import MySQLdb
 import requests
 import io
 import base64
+import flash
 
 
 
@@ -125,7 +126,7 @@ def authorize():
             ON DUPLICATE KEY UPDATE display_name = VALUES(display_name)
         """, (google_id, display_name, email))
         db.commit()
-        return redirect(url_for('update'))
+        return redirect(url_for('update_user'))
 
 @app.route('/get_providers/<division>')
 def get_providers(division):
@@ -153,13 +154,14 @@ def search_cars():
     return {'cars': cars}
 
 
-@app.route('/update')  # Route for updating user information
-@login_required
-def update():
-    user = session['profile']
-    return render_template('update.html', user=user)
+# @app.route('/update')  # Route for updating user information
+# @login_required
+# def update():
+#     user = session['profile']
+#     return render_template('update.html', user=user)
 
-@app.route('/dashboard')  # Route for the main dashboard
+
+@app.route('/dashboard')
 @login_required
 def dashboard():
     user_profile = session['profile']
@@ -171,7 +173,7 @@ def dashboard():
         SELECT u.display_name, u.email, u.phone, u.address, u.division,
                up.provider_name AS electricity_provider,
                uw.provider_name AS water_provider,
-               ug.provider_name AS gas_provider, u.gas_type, u.car_ids
+               ug.provider_name AS gas_provider, u.gas_type
         FROM user u
         LEFT JOIN utility_providers up ON u.electricity_provider = up.id
         LEFT JOIN utility_providers uw ON u.water_provider = uw.id
@@ -183,26 +185,29 @@ def dashboard():
     if not user_data:
         return "User information not found.", 404
 
+    # Fetch user_id
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user_id_row = cursor.fetchone()
+    if not user_id_row:
+        return "User not found.", 404
+    user_id = user_id_row['id']
+
     # Fetch housing details
     cursor.execute("""
         SELECT house_size_sqft, num_members, solar_panel_watt, wind_source_watt, other_renewable_source
         FROM user_housing
-        WHERE user_id = (
-            SELECT id FROM user WHERE google_id = %s
-        )
-    """, (google_id,))
+        WHERE user_id = %s
+    """, (user_id,))
     housing_data = cursor.fetchone()
 
     # Fetch last 15 days' consumption and daily bills
     cursor.execute("""
         SELECT consumption_date, units_consumed, daily_bill
         FROM daily_electricity_consumption
-        WHERE user_id = (
-            SELECT id FROM user WHERE google_id = %s
-        )
+        WHERE user_id = %s
         ORDER BY consumption_date DESC
         LIMIT 15
-    """, (google_id,))
+    """, (user_id,))
     consumption_records = cursor.fetchall()
 
     # Fetch aggregated monthly electricity usage
@@ -212,27 +217,24 @@ def dashboard():
         YEAR(consumption_date) AS bill_year, 
         SUM(units_consumed) AS total_units
         FROM daily_electricity_consumption
-        WHERE user_id = (
-            SELECT id FROM user WHERE google_id = %s
-        )
+        WHERE user_id = %s
         GROUP BY bill_year, bill_month
-        ORDER BY bill_year DESC, bill_month DESC;
-    """, (google_id,))
+        ORDER BY bill_year DESC, bill_month DESC
+    """, (user_id,))
     monthly_electricity_data = cursor.fetchall()
 
-
-    # Fetch car details
-    car_list = []
-    if user_data['car_ids']:
-        car_ids = user_data['car_ids'].split(',')
-        cursor.execute("""
-            SELECT model_name FROM vehicles WHERE id IN (%s)
-        """ % ','.join(['%s'] * len(car_ids)), car_ids)
-        car_list = [car['model_name'] for car in cursor.fetchall()]
+    # Fetch user's vehicles (NOW FROM user_vehicles)
+    cursor.execute("""
+        SELECT v.model_name 
+        FROM user_vehicles uv
+        JOIN vehicles v ON uv.vehicle_id = v.id
+        WHERE uv.user_id = %s
+    """, (user_id,))
+    car_list = [car['model_name'] for car in cursor.fetchall()]
 
     cursor.close()
 
-    # Combine all data to pass to the template
+    # Combine all data
     user_info = {
         'profile': user_profile,
         'details': user_data,
@@ -246,7 +248,6 @@ def dashboard():
         for record in consumption_records
     ]
 
-
     return render_template(
         'dashboard.html',
         user_info=user_info,
@@ -255,80 +256,148 @@ def dashboard():
     )
 
 
-@app.route('/update_user', methods=['POST'])
+
+@app.route('/update_user', methods=['GET', 'POST'])
 def update_user():
-    """Update user information and housing details."""
     if 'profile' not in session or 'id' not in session['profile']:
-        return "User is not logged in", 401
+        return redirect(url_for('login'))
 
     google_id = session['profile']['id']
-
-    # Fetch user ID from `user` table
     cursor = db.cursor(MySQLdb.cursors.DictCursor)
-    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+
+    # Get user info
+    cursor.execute("SELECT * FROM user WHERE google_id = %s", (google_id,))
     user = cursor.fetchone()
-
     if not user:
-        print(f"No user found for google_id: {google_id}")
-        return "User not found in the database. Please register first.", 404
+        return redirect(url_for('logout'))
 
-    user_id = user['id']
-
-    # Fetch user data from the form
-    phone = request.form.get('phone', '')
-    address = request.form.get('address', '')
-    division = request.form.get('division', '')
-    electricity_provider = request.form.get('electricity_provider', None)
-    water_provider = request.form.get('water_provider', None)
-    gas_provider = request.form.get('gas_provider', None)
-    gas_type = request.form.get('gas_type', None)
-    car_ids = request.form.getlist('car_ids')  # Multiple car IDs
-
-    # Update user table
+    # Get existing housing data if it exists
     cursor.execute("""
-        UPDATE user
-        SET phone = %s, address = %s, division = %s,
-            electricity_provider = %s, water_provider = %s,
-            gas_provider = %s, gas_type = %s, car_ids = %s
-        WHERE id = %s
-    """, (phone, address, division, electricity_provider, water_provider,
-          gas_provider, gas_type, ','.join(car_ids), user_id))
-
-    # Fetch housing data from the form
-    house_size_sqft = request.form.get('house_size_sqft', 0, type=int)
-    num_members = request.form.get('num_members', 0, type=int)
-    solar_panel_watt = request.form.get('solar_panel_watt', 0, type=int)
-    wind_source_watt = request.form.get('wind_source_watt', 0, type=int)
-    other_renewable_source = request.form.get('other_renewable_source', 0, type=int)
-
-    # Check if housing record exists for the user
-    cursor.execute("SELECT id FROM user_housing WHERE user_id = %s", (user_id,))
+        SELECT id, house_size_sqft, num_members, 
+               solar_panel_watt, wind_source_watt, other_renewable_source
+        FROM user_housing 
+        WHERE user_id = %s
+    """, (user['id'],))
     housing = cursor.fetchone()
 
-    if housing:
-        # Update existing housing record
-        cursor.execute("""
-            UPDATE user_housing
-            SET house_size_sqft = %s, num_members = %s,
-                solar_panel_watt = %s, wind_source_watt = %s,
-                other_renewable_source = %s
-            WHERE user_id = %s
-        """, (house_size_sqft, num_members, solar_panel_watt, wind_source_watt,
-              other_renewable_source, user_id))
-    else:
-        # Insert new housing record
-        cursor.execute("""
-            INSERT INTO user_housing (user_id, house_size_sqft, num_members,
-                                       solar_panel_watt, wind_source_watt,
-                                       other_renewable_source)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """, (user_id, house_size_sqft, num_members, solar_panel_watt, wind_source_watt,
-              other_renewable_source))
+    if request.method == 'POST':
+        try:
+            # Update basic user details
+            phone = request.form.get('phone', '')
+            address = request.form.get('address', '')
+            division = request.form.get('division', '')
+            electricity_provider = request.form.get('electricity_provider') or None
+            water_provider = request.form.get('water_provider') or None
+            gas_provider = request.form.get('gas_provider') or None
+            gas_type = request.form.get('gas_type') or None
 
-    # Commit changes to the database
-    db.commit()
+            cursor.execute("""
+                UPDATE user
+                SET phone = %s, address = %s, division = %s,
+                    electricity_provider = %s, water_provider = %s,
+                    gas_provider = %s, gas_type = %s
+                WHERE id = %s
+            """, (phone, address, division, electricity_provider,
+                 water_provider, gas_provider, gas_type, user['id']))
 
-    return redirect(url_for('update'))
+            # Handle deleted vehicles
+            deleted_ids = request.form.get('deleted_vehicle_ids', '')
+            if deleted_ids:
+                deleted_ids_list = [vid for vid in deleted_ids.split(',') if vid]
+                for vid in deleted_ids_list:
+                    cursor.execute("DELETE FROM user_vehicles WHERE id = %s", (vid,))
+
+            # Handle vehicles (existing and new)
+            counter = 0
+            while True:
+                model_name = request.form.get(f'vehicle_model_name_{counter}')
+                if not model_name:
+                    break
+
+                vehicle_id = request.form.get(f'vehicle_vehicle_id_{counter}')
+                user_vehicle_id = request.form.get(f'vehicle_user_vehicle_id_{counter}')
+                purchase_date = request.form.get(f'purchase_date_{counter}')
+                custom_daily_km = request.form.get(f'custom_daily_km_{counter}') or None
+                license_plate = request.form.get(f'license_plate_{counter}')
+
+                if user_vehicle_id:  # Update existing
+                    cursor.execute("""
+                        UPDATE user_vehicles
+                        SET purchase_date = %s, custom_daily_km = %s, license_plate = %s
+                        WHERE id = %s
+                    """, (purchase_date, custom_daily_km, license_plate, user_vehicle_id))
+                else:  # Insert new
+                    cursor.execute("""
+                        INSERT INTO user_vehicles 
+                        (user_id, vehicle_id, purchase_date, custom_daily_km, license_plate)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """, (user['id'], vehicle_id, purchase_date, custom_daily_km, license_plate))
+
+                counter += 1
+
+            # Update housing details
+            house_size_sqft = request.form.get('house_size_sqft', 0, type=int) or 0
+            num_members = request.form.get('num_members', 0, type=int) or 0
+            solar_panel_watt = request.form.get('solar_panel_watt', 0, type=int) or 0
+            wind_source_watt = request.form.get('wind_source_watt', 0, type=int) or 0
+            other_renewable_source = request.form.get('other_renewable_source', 0, type=int) or 0
+
+            if housing:  # Update existing housing record
+                cursor.execute("""
+                    UPDATE user_housing
+                    SET house_size_sqft = %s, num_members = %s,
+                        solar_panel_watt = %s, wind_source_watt = %s,
+                        other_renewable_source = %s
+                    WHERE id = %s
+                """, (house_size_sqft, num_members, solar_panel_watt,
+                     wind_source_watt, other_renewable_source, housing['id']))
+            else:  # Create new housing record
+                cursor.execute("""
+                    INSERT INTO user_housing 
+                    (user_id, house_size_sqft, num_members,
+                     solar_panel_watt, wind_source_watt,
+                     other_renewable_source)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (user['id'], house_size_sqft, num_members,
+                     solar_panel_watt, wind_source_watt, other_renewable_source))
+
+            db.commit()
+            #flash("Your profile has been updated successfully!", "success")
+            return redirect(url_for('dashboard'))
+
+        except Exception as e:
+            db.rollback()
+            #flash(f"An error occurred: {str(e)}", "error")
+            return redirect(url_for('dashboard'))
+
+    # For GET requests, render the form with existing data
+    # Get user vehicles for display
+    cursor.execute("""
+        SELECT uv.id as user_vehicle_id, uv.*, v.model_name 
+        FROM user_vehicles uv
+        JOIN vehicles v ON uv.vehicle_id = v.id
+        WHERE uv.user_id = %s
+    """, (user['id'],))
+    user_vehicles = cursor.fetchall()
+
+    
+
+    housing_data = housing or {
+        'house_size_sqft': 0,
+        'num_members': 0,
+        'solar_panel_watt': 0,
+        'wind_source_watt': 0,
+        'other_renewable_source': 0
+    }
+
+
+    return render_template('update.html',
+                         user=user,
+                         user_vehicles=user_vehicles,
+                         housing=housing_data)
+
+
+
 
 @app.route('/log_consumption', methods=['GET'])
 def log_consumption():
