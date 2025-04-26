@@ -361,7 +361,7 @@ def view_electricity_bills():
 
     user_id = user['user_id']
 
-    # Fetch aggregated monthly consumption and bill
+    # aggregated monthly consumption and bill
     cursor.execute("""
         SELECT 
             MONTH(consumption_date) AS bill_month, 
