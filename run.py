@@ -200,7 +200,7 @@ def dashboard():
     """, (user_id,))
     housing_data = cursor.fetchone()
 
-    # Fetch last 15 days' consumption and daily bills
+    # Fetch last 15 days' electricity consumption and daily bills
     cursor.execute("""
         SELECT consumption_date, units_consumed, daily_bill
         FROM daily_electricity_consumption
@@ -210,18 +210,94 @@ def dashboard():
     """, (user_id,))
     consumption_records = cursor.fetchall()
 
+    # Fetch last 15 days' water consumption and daily bills
+    cursor.execute("""
+        SELECT consumption_date, liters_consumed, daily_bill
+        FROM daily_water_consumption
+        WHERE user_id = %s
+        ORDER BY consumption_date DESC
+        LIMIT 15
+    """, (user_id,))
+    water_consumption_records = cursor.fetchall()
+    
+    # Fetch last 15 days' gas consumption
+    cursor.execute("""
+        SELECT consumption_date, gas_used_cubic_meters, gas_cost
+        FROM daily_gas_consumption
+        WHERE user_id = %s
+        ORDER BY consumption_date DESC
+        LIMIT 15
+    """, (user_id,))
+    gas_consumption_records = cursor.fetchall()
+
+    # Fetch last 15 days' fuel consumption
+    cursor.execute("""
+        SELECT consumption_date, fuel_used_liters, fuel_cost
+        FROM daily_fuel_consumption
+        WHERE user_id = %s
+        ORDER BY consumption_date DESC
+        LIMIT 15
+    """, (user_id,))
+    fuel_consumption_records = cursor.fetchall()
+
+
+
     # Fetch aggregated monthly electricity usage
     cursor.execute("""
         SELECT 
         MONTH(consumption_date) AS bill_month, 
         YEAR(consumption_date) AS bill_year, 
-        SUM(units_consumed) AS total_units
+        SUM(units_consumed) AS total_units,
+        SUM(daily_bill) AS total_bill
         FROM daily_electricity_consumption
         WHERE user_id = %s
         GROUP BY bill_year, bill_month
         ORDER BY bill_year DESC, bill_month DESC
     """, (user_id,))
     monthly_electricity_data = cursor.fetchall()
+    
+    # Fetch aggregated monthly water usage
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month, 
+            YEAR(consumption_date) AS year, 
+            SUM(liters_consumed) AS total_liters,
+            SUM(daily_bill) AS total_bill
+        FROM daily_water_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    monthly_water_data = cursor.fetchall()
+    
+    # Fetch monthly gas usage
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month,
+            YEAR(consumption_date) AS year,
+            SUM(gas_used_cubic_meters) AS total_cubic_meters,
+            SUM(gas_cost) AS total_bill
+        FROM daily_gas_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    monthly_gas_data = cursor.fetchall()
+
+    # Fetch monthly fuel usage
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month,
+            YEAR(consumption_date) AS year,
+            SUM(fuel_used_liters) AS total_liters,
+            SUM(fuel_cost) AS total_bill
+        FROM daily_fuel_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    monthly_fuel_data = cursor.fetchall()   
+    
 
     # Fetch user's vehicles (NOW FROM user_vehicles)
     cursor.execute("""
@@ -242,17 +318,50 @@ def dashboard():
         'cars': car_list,
     }
 
-    # Structure `recent_consumption`
+    # Structure  electricity `recent_consumption`
     recent_consumption = [
         {"date": record["consumption_date"].strftime("%Y-%m-%d"), "units": record["units_consumed"], "bill": record["daily_bill"]}
         for record in consumption_records
+    ]
+
+    # Structure recent_water_consumption
+    recent_water_consumption = [
+        {
+            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "liters": record["liters_consumed"],
+            "bill": record["daily_bill"]
+        }
+        for record in water_consumption_records
+    ]
+    
+    recent_gas_consumption=[
+        {
+            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "cubic_meters": record["gas_used_cubic_meters"],
+            "bill": record["gas_cost"]
+        }
+        for record in gas_consumption_records
+    ]
+    recent_fuel_consumption=[
+        {
+            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "liters": record["fuel_used_liters"],
+            "bill": record["fuel_cost"]
+        }
+        for record in fuel_consumption_records
     ]
 
     return render_template(
         'dashboard.html',
         user_info=user_info,
         recent_consumption=recent_consumption,
-        monthly_electricity_data=monthly_electricity_data
+        monthly_electricity_data=monthly_electricity_data,
+        recent_water_consumption=recent_water_consumption,
+        monthly_water_data=monthly_water_data,
+        monthly_gas_data=monthly_gas_data,
+        monthly_fuel_data=monthly_fuel_data,
+        recent_gas_consumption=recent_gas_consumption,
+        recent_fuel_consumption=recent_fuel_consumption,
     )
 
 
@@ -430,7 +539,7 @@ def view_electricity_bills():
 
     user_id = user['user_id']
 
-    # aggregated monthly consumption and bill
+    # aggregated monthly electricity consumption and bill
     cursor.execute("""
         SELECT 
             MONTH(consumption_date) AS bill_month, 
@@ -445,7 +554,9 @@ def view_electricity_bills():
     """, (user_id,))
     bills = cursor.fetchall()
     cursor.close()
-
+    
+    
+    
     # Render the updated template
     return render_template('electricity_bills.html', bills=bills)
 

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,22 +11,29 @@
             font-family: Arial, sans-serif;
             margin: 20px;
         }
-        h1, h2 {
+
+        h1,
+        h2 {
             color: #68a469;
         }
+
         .section {
             margin-bottom: 20px;
         }
+
         .section h2 {
             margin-bottom: 10px;
         }
+
         ul {
             list-style-type: none;
             padding: 0;
         }
+
         ul li {
             padding: 5px 0;
         }
+
         .btn {
             display: inline-block;
             padding: 10px 20px;
@@ -35,11 +43,13 @@
             border-radius: 5px;
             margin-right: 10px;
         }
+
         .btn:hover {
             background-color: #324932;
         }
     </style>
 </head>
+
 <body>
     <h1>Welcome, {{ user_info['profile']['name'] }}!</h1>
     <p>Your email: {{ user_info['profile']['email'] }}</p>
@@ -94,33 +104,66 @@
     <div class="section">
         <h2>Daily Electricity Consumption (Last 15 Days)</h2>
         <canvas id="dailyConsumptionChart" style="max-width: 65%; height: 300px;"></canvas>
-    </div>   
+    </div>
 
     <div class="section">
         <h2>Electricity Usage Histogram</h2>
         <canvas id="electricityHistogramChart" style="max-width: 65%; height: 300px;"></canvas>
     </div>
-    
-    
+
+    <div class="section">
+        <h2>Daily Water Consumption (Last 15 Days)</h2>
+        <canvas id="dailyWaterConsumptionChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+
+    <div class="section">
+        <h2>Water Usage Histogram</h2>
+        <canvas id="waterHistogramChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+
+    <div class="section">
+        <h2>Daily Gas Consumption (Last 15 Days)</h2>
+        <canvas id="dailyGasConsumptionChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+
+    <div class="section">
+        <h2>Gas Usage Histogram</h2>
+        <canvas id="gasHistogramChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+
+    <div class="section">
+        <h2>Daily Fuel Consumption (Last 15 Days)</h2>
+        <canvas id="dailyFuelConsumptionChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+
+    <div class="section">
+        <h2>Fuel Usage Histogram</h2>
+        <canvas id="fuelHistogramChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+
+
     <div class="section">
         <h2>Bills</h2>
         <a href="{{ url_for('view_electricity_bills') }}" class="btn">View Electricity Bills</a>
-    </div>    
-    
+    </div>
+
     <div class="section">
         <a href="{{ url_for('update_user') }}" class="btn">Update Your Information</a>
     </div>
 
     <p><a href="{{ url_for('logout') }}">Logout</a></p>
+
+
+
     <script>
         // Get recent consumption data from the template
-        const recentConsumption = {{recent_consumption | tojson}};
-        
+        const recentConsumption = {{ recent_consumption | tojson}};
+
         // Extract the dates, units, and bills for the graph
         const labels = recentConsumption.map(record => record.date);
         const units = recentConsumption.map(record => record.units);
         const bills = recentConsumption.map(record => record.bill);
-    
+
         // Create the chart
         const ctx = document.getElementById('dailyConsumptionChart').getContext('2d');
         const dailyConsumptionChart = new Chart(ctx, {
@@ -176,59 +219,339 @@
         });
     </script>
 
-<script>
-  // Get monthly electricity data from the backend
-const monthlyElectricityData = {{ monthly_electricity_data | tojson }};
 
-// Format month and year labels for histogram
-const histogramLabels = monthlyElectricityData.map(
-    record => `${record.bill_month}/${record.bill_year}`
-);
 
-// Extract total units consumed
-const histogramData = monthlyElectricityData.map(record => record.total_units);
+    <script>
+        // Get monthly electricity data from the backend
+        const monthlyElectricityData = {{ monthly_electricity_data | tojson }};
 
-// Create the histogram chart
-const ctxHistogram = document.getElementById('electricityHistogramChart').getContext('2d');
-const electricityHistogramChart = new Chart(ctxHistogram, {
-    type: 'bar',
-    data: {
-        labels: histogramLabels, // Formatted Month/Year
-        datasets: [{
-            label: 'Electricity Usage (kWh)',
-            data: histogramData, // Total Units Consumed
-            backgroundColor: 'rgba(95, 192, 192, 0.6)',
-            borderColor: 'rgba(105, 192, 192, 1)',
-            borderWidth: 1
-        }]
-    },
-    options: {
-        responsive: true,
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top'
-            }
-        },
-        scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Month/Year'
-                }
+        // Format month and year labels for histogram
+        const histogramLabels = monthlyElectricityData.map(
+            record => `${record.bill_month}/${record.bill_year}`
+        );
+
+        // Extract total units consumed
+        const histogramData = monthlyElectricityData.map(record => record.total_units);
+        const histogramBills = monthlyElectricityData.map(record => record.total_bill);
+
+        // Create the histogram chart
+        const ctxHistogram = document.getElementById('electricityHistogramChart').getContext('2d');
+        const electricityHistogramChart = new Chart(ctxHistogram, {
+            type: 'bar',
+            data: {
+                labels: histogramLabels,
+                datasets: [{
+                    label: 'Electricity Usage (kWh)',
+                    data: histogramData,
+                    backgroundColor: 'rgba(95, 192, 192, 0.6)',
+                    borderColor: 'rgba(105, 192, 192, 1)',
+                    borderWidth: 1
+                }]
             },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Electricity Usage (kWh)'
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const units = context.raw;
+                                const index = context.dataIndex;
+                                const bill = histogramBills[index];
+                                return [
+                                    `Units: ${units.toFixed(2)} kWh`,
+                                    `Bill: ${bill.toFixed(2)} Tk`
+                                ];
+                            }
+                        }
+                    }
                 },
-                beginAtZero: true
+                scales: {
+                    x: { title: { display: true, text: 'Month/Year' } },
+                    y: { title: { display: true, text: 'Electricity Usage (kWh)' }, beginAtZero: true }
+                }
             }
-        }
-    }
-});
-</script>
+        });
+    </script>
 
-    
+
+    <script>
+        // Get recent water consumption data
+        const recentWaterConsumption = {{ recent_water_consumption | tojson }};
+
+        const waterLabels = recentWaterConsumption.map(record => record.date);
+        const liters = recentWaterConsumption.map(record => record.liters);
+        const waterBills = recentWaterConsumption.map(record => record.bill);
+
+        // Create the water consumption chart
+        const ctxWater = document.getElementById('dailyWaterConsumptionChart').getContext('2d');
+        const dailyWaterConsumptionChart = new Chart(ctxWater, {
+            type: 'line',
+            data: {
+                labels: waterLabels,
+                datasets: [
+                    {
+                        label: 'Consumed Taka (Tk)',
+                        data: waterBills,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Consumed Water (Liters)',
+                        data: liters,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Date' } },
+                    y: { title: { display: true, text: 'Value' }, beginAtZero: true }
+                }
+            }
+        });
+
+    </script>
+
+
+
+    <script>
+        // Get monthly water data from the backend
+        const monthlyWaterData = {{ monthly_water_data | tojson }};
+
+        // Format month and year labels for water histogram
+        const waterHistogramLabels = monthlyWaterData.map(
+            record => `${record.month}/${record.year}`
+        );
+
+        // Extract total liters consumed
+        const waterHistogramData = monthlyWaterData.map(record => record.total_liters);
+        const waterHistogramBills = monthlyWaterData.map(record => record.total_bill);
+
+        // Create the water histogram chart
+        const ctxWaterHistogram = document.getElementById('waterHistogramChart').getContext('2d');
+        const waterHistogramChart = new Chart(ctxWaterHistogram, {
+            type: 'bar',
+            data: {
+                labels: waterHistogramLabels,
+                datasets: [{
+                    label: 'Water Usage (Liters)',
+                    data: waterHistogramData,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const liters = context.raw;
+                                const index = context.dataIndex;
+                                const bill = waterHistogramBills[index];
+                                return [
+                                    `Liters: ${liters.toFixed(2)} L`,
+                                    `Bill: ${bill.toFixed(2)} Tk`
+                                ];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Month/Year' } },
+                    y: { title: { display: true, text: 'Water Usage (Liters)' }, beginAtZero: true }
+                }
+            }
+        });
+    </script>
+
+
+    <script>
+        const recentGasConsumption = {{ recent_gas_consumption | tojson }};
+        const gasLabels = recentGasConsumption.map(record => record.date);
+        const cubicMeters = recentGasConsumption.map(record => record.cubic_meters);
+        const gasBills = recentGasConsumption.map(record => record.bill);
+
+        const ctxGas = document.getElementById('dailyGasConsumptionChart').getContext('2d');
+        const dailyGasConsumptionChart = new Chart(ctxGas, {
+            type: 'line',
+            data: {
+                labels: gasLabels,
+                datasets: [
+                    {
+                        label: 'Gas Cost (Tk)',
+                        data: gasBills,
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Gas Used (Cubic Meters)',
+                        data: cubicMeters,
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Date' } },
+                    y: { title: { display: true, text: 'Value' }, beginAtZero: true }
+                }
+            }
+        });
+
+    </script>
+
+
+    <script>
+        const monthlyGasData = {{ monthly_gas_data | tojson }};
+        const gasHistogramLabels = monthlyGasData.map(record => `${record.month}/${record.year}`);
+        const gasHistogramData = monthlyGasData.map(record => record.total_cubic_meters);
+        const gasHistogramBills = monthlyGasData.map(record => record.total_bill);
+
+        const ctxGasHistogram = document.getElementById('gasHistogramChart').getContext('2d');
+        const gasHistogramChart = new Chart(ctxGasHistogram, {
+            type: 'bar',
+            data: {
+                labels: gasHistogramLabels,
+                datasets: [{
+                    label: 'Gas Usage (Cubic Meters)',
+                    data: gasHistogramData,
+                    backgroundColor: 'rgba(255, 159, 64, 0.6)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const usage = context.raw;
+                                const index = context.dataIndex;
+                                const bill = gasHistogramBills[index];
+                                return [`Gas Used: ${usage.toFixed(2)} m³`, `Bill: ${bill.toFixed(2)} Tk`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Month/Year' } },
+                    y: { title: { display: true, text: 'Gas Usage (m³)' }, beginAtZero: true }
+                }
+            }
+        });
+    </script>
+
+    <script>
+        const recentFuelConsumption = {{ recent_fuel_consumption | tojson }};
+        const fuelLabels = recentFuelConsumption.map(record => record.date);
+        const fuelLiters = recentFuelConsumption.map(record => record.liters);
+        const fuelBills = recentFuelConsumption.map(record => record.bill);
+
+        const ctxFuel = document.getElementById('dailyFuelConsumptionChart').getContext('2d');
+        const dailyFuelConsumptionChart = new Chart(ctxFuel, {
+            type: 'line',
+            data: {
+                labels: fuelLabels,
+                datasets: [
+                    {
+                        label: 'Fuel Cost (Tk)',
+                        data: fuelBills,
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    },
+                    {
+                        label: 'Fuel Used (Liters)',
+                        data: fuelLiters,
+                        borderColor: 'rgba(201, 203, 207, 1)',
+                        backgroundColor: 'rgba(201, 203, 207, 0.2)',
+                        tension: 0.4,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true, position: 'top' },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Date' } },
+                    y: { title: { display: true, text: 'Value' }, beginAtZero: true }
+                }
+            }
+        });
+
+    </script>
+
+    <script>
+        const monthlyFuelData = {{ monthly_fuel_data | tojson }};
+        const fuelHistogramLabels = monthlyFuelData.map(record => `${record.month}/${record.year}`);
+        const fuelHistogramData = monthlyFuelData.map(record => record.total_liters);
+        const fuelHistogramBills = monthlyFuelData.map(record => record.total_bill);
+
+        const ctxFuelHistogram = document.getElementById('fuelHistogramChart').getContext('2d');
+        const fuelHistogramChart = new Chart(ctxFuelHistogram, {
+            type: 'bar',
+            data: {
+                labels: fuelHistogramLabels,
+                datasets: [{
+                    label: 'Fuel Usage (Liters)',
+                    data: fuelHistogramData,
+                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const usage = context.raw;
+                                const index = context.dataIndex;
+                                const bill = fuelHistogramBills[index];
+                                return [`Liters: ${usage.toFixed(2)} L`, `Bill: ${bill.toFixed(2)} Tk`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Month/Year' } },
+                    y: { title: { display: true, text: 'Fuel Usage (Liters)' }, beginAtZero: true }
+                }
+            }
+        });
+    </script>
+
 </body>
+
 </html>
