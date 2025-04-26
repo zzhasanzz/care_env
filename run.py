@@ -219,6 +219,27 @@ def dashboard():
         LIMIT 15
     """, (user_id,))
     water_consumption_records = cursor.fetchall()
+    
+    # Fetch last 15 days' gas consumption
+    cursor.execute("""
+        SELECT consumption_date, gas_used_cubic_meters, gas_cost
+        FROM daily_gas_consumption
+        WHERE user_id = %s
+        ORDER BY consumption_date DESC
+        LIMIT 15
+    """, (user_id,))
+    gas_consumption_records = cursor.fetchall()
+
+    # Fetch last 15 days' fuel consumption
+    cursor.execute("""
+        SELECT consumption_date, fuel_used_liters, fuel_cost
+        FROM daily_fuel_consumption
+        WHERE user_id = %s
+        ORDER BY consumption_date DESC
+        LIMIT 15
+    """, (user_id,))
+    fuel_consumption_records = cursor.fetchall()
+
 
 
     # Fetch aggregated monthly electricity usage
@@ -248,6 +269,35 @@ def dashboard():
         ORDER BY year DESC, month DESC
     """, (user_id,))
     monthly_water_data = cursor.fetchall()
+    
+    # Fetch monthly gas usage
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month,
+            YEAR(consumption_date) AS year,
+            SUM(gas_used_cubic_meters) AS total_cubic_meters,
+            SUM(gas_cost) AS total_bill
+        FROM daily_gas_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    monthly_gas_data = cursor.fetchall()
+
+    # Fetch monthly fuel usage
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month,
+            YEAR(consumption_date) AS year,
+            SUM(fuel_used_liters) AS total_liters,
+            SUM(fuel_cost) AS total_bill
+        FROM daily_fuel_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    monthly_fuel_data = cursor.fetchall()   
+    
 
     # Fetch user's vehicles (NOW FROM user_vehicles)
     cursor.execute("""
@@ -283,7 +333,23 @@ def dashboard():
         }
         for record in water_consumption_records
     ]
-
+    
+    recent_gas_consumption=[
+        {
+            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "cubic_meters": record["gas_used_cubic_meters"],
+            "bill": record["gas_cost"]
+        }
+        for record in gas_consumption_records
+    ]
+    recent_fuel_consumption=[
+        {
+            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "liters": record["fuel_used_liters"],
+            "bill": record["fuel_cost"]
+        }
+        for record in fuel_consumption_records
+    ]
 
     return render_template(
         'dashboard.html',
@@ -291,7 +357,11 @@ def dashboard():
         recent_consumption=recent_consumption,
         monthly_electricity_data=monthly_electricity_data,
         recent_water_consumption=recent_water_consumption,
-        monthly_water_data=monthly_water_data
+        monthly_water_data=monthly_water_data,
+        monthly_gas_data=monthly_gas_data,
+        monthly_fuel_data=monthly_fuel_data,
+        recent_gas_consumption=recent_gas_consumption,
+        recent_fuel_consumption=recent_fuel_consumption,
     )
 
 
