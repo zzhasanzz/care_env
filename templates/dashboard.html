@@ -105,9 +105,13 @@
         <h2>Daily Water Consumption (Last 15 Days)</h2>
         <canvas id="dailyWaterConsumptionChart" style="max-width: 65%; height: 300px;"></canvas>
     </div> 
-       
+
+    <div class="section">
+        <h2>Water Usage Histogram</h2>
+        <canvas id="waterHistogramChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
     
-    
+
     
     <div class="section">
         <h2>Bills</h2>
@@ -194,16 +198,17 @@ const histogramLabels = monthlyElectricityData.map(
 
 // Extract total units consumed
 const histogramData = monthlyElectricityData.map(record => record.total_units);
+const histogramBills = monthlyElectricityData.map(record => record.total_bill);
 
 // Create the histogram chart
 const ctxHistogram = document.getElementById('electricityHistogramChart').getContext('2d');
 const electricityHistogramChart = new Chart(ctxHistogram, {
     type: 'bar',
     data: {
-        labels: histogramLabels, // Formatted Month/Year
+        labels: histogramLabels,
         datasets: [{
             label: 'Electricity Usage (kWh)',
-            data: histogramData, // Total Units Consumed
+            data: histogramData,
             backgroundColor: 'rgba(95, 192, 192, 0.6)',
             borderColor: 'rgba(105, 192, 192, 1)',
             borderWidth: 1
@@ -212,25 +217,24 @@ const electricityHistogramChart = new Chart(ctxHistogram, {
     options: {
         responsive: true,
         plugins: {
-            legend: {
-                display: true,
-                position: 'top'
+            legend: { display: true, position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const units = context.raw;
+                        const index = context.dataIndex;
+                        const bill = histogramBills[index];
+                        return [
+                            `Units: ${units.toFixed(2)} kWh`,
+                            `Bill: ${bill.toFixed(2)} Tk`
+                        ];
+                    }
+                }
             }
         },
         scales: {
-            x: {
-                title: {
-                    display: true,
-                    text: 'Month/Year'
-                }
-            },
-            y: {
-                title: {
-                    display: true,
-                    text: 'Electricity Usage (kWh)'
-                },
-                beginAtZero: true
-            }
+            x: { title: { display: true, text: 'Month/Year' } },
+            y: { title: { display: true, text: 'Electricity Usage (kWh)' }, beginAtZero: true }
         }
     }
 });
@@ -254,7 +258,7 @@ const electricityHistogramChart = new Chart(ctxHistogram, {
                 {
                     label: 'Consumed Taka (Tk)',
                     data: waterBills,
-                    yAxisID: 'y_tk',  // 🔥 Important: assign to y_tk axis
+                    yAxisID: 'y_tk',  
                     borderColor: 'rgba(75, 192, 192, 1)',
                     backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     tension: 0.4,
@@ -263,7 +267,7 @@ const electricityHistogramChart = new Chart(ctxHistogram, {
                 {
                     label: 'Consumed Water (Liters)',
                     data: liters,
-                    yAxisID: 'y_liters',  // 🔥 Important: assign to y_liters axis
+                    yAxisID: 'y_liters',  
                     borderColor: 'rgba(54, 162, 235, 1)',
                     backgroundColor: 'rgba(54, 162, 235, 0.2)',
                     tension: 0.4,
@@ -290,7 +294,7 @@ const electricityHistogramChart = new Chart(ctxHistogram, {
                         text: 'Date'
                     }
                 },
-                y_liters: {  // 🔥 Water usage axis
+                y_liters: {  //  Water usage axis
                     type: 'linear',
                     position: 'left',
                     title: {
@@ -298,7 +302,7 @@ const electricityHistogramChart = new Chart(ctxHistogram, {
                         text: 'Water (Liters)'
                     }
                 },
-                y_tk: {  // 🔥 Bill axis
+                y_tk: {  //  Bill axis
                     type: 'linear',
                     position: 'right',
                     title: {
@@ -306,7 +310,7 @@ const electricityHistogramChart = new Chart(ctxHistogram, {
                         text: 'Cost (Tk)'
                     },
                     grid: {
-                        drawOnChartArea: false  // Optional: prevent messy grid lines
+                        drawOnChartArea: false 
                     }
                 }
             }
@@ -314,8 +318,58 @@ const electricityHistogramChart = new Chart(ctxHistogram, {
     });
 </script>
 
+<script>
+  // Get monthly water data from the backend
+  const monthlyWaterData = {{ monthly_water_data | tojson }};
 
+  // Format month and year labels for water histogram
+  const waterHistogramLabels = monthlyWaterData.map(
+      record => `${record.month}/${record.year}`
+  );
 
+  // Extract total liters consumed
+  const waterHistogramData = monthlyWaterData.map(record => record.total_liters);
+  const waterHistogramBills = monthlyWaterData.map(record => record.total_bill);
+
+  // Create the water histogram chart
+  const ctxWaterHistogram = document.getElementById('waterHistogramChart').getContext('2d');
+  const waterHistogramChart = new Chart(ctxWaterHistogram, {
+    type: 'bar',
+    data: {
+        labels: waterHistogramLabels,
+        datasets: [{
+            label: 'Water Usage (Liters)',
+            data: waterHistogramData,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: { display: true, position: 'top' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const liters = context.raw;
+                        const index = context.dataIndex;
+                        const bill = waterHistogramBills[index];
+                        return [
+                            `Liters: ${liters.toFixed(2)} L`,
+                            `Bill: ${bill.toFixed(2)} Tk`
+                        ];
+                    }
+                }
+            }
+        },
+        scales: {
+            x: { title: { display: true, text: 'Month/Year' } },
+            y: { title: { display: true, text: 'Water Usage (Liters)' }, beginAtZero: true }
+        }
+    }
+});
+</script>
     
 </body>
 </html>

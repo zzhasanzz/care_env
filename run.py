@@ -226,13 +226,28 @@ def dashboard():
         SELECT 
         MONTH(consumption_date) AS bill_month, 
         YEAR(consumption_date) AS bill_year, 
-        SUM(units_consumed) AS total_units
+        SUM(units_consumed) AS total_units,
+        SUM(daily_bill) AS total_bill
         FROM daily_electricity_consumption
         WHERE user_id = %s
         GROUP BY bill_year, bill_month
         ORDER BY bill_year DESC, bill_month DESC
     """, (user_id,))
     monthly_electricity_data = cursor.fetchall()
+    
+    # Fetch aggregated monthly water usage
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month, 
+            YEAR(consumption_date) AS year, 
+            SUM(liters_consumed) AS total_liters,
+            SUM(daily_bill) AS total_bill
+        FROM daily_water_consumption
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    monthly_water_data = cursor.fetchall()
 
     # Fetch user's vehicles (NOW FROM user_vehicles)
     cursor.execute("""
@@ -275,7 +290,8 @@ def dashboard():
         user_info=user_info,
         recent_consumption=recent_consumption,
         monthly_electricity_data=monthly_electricity_data,
-        recent_water_consumption=recent_water_consumption
+        recent_water_consumption=recent_water_consumption,
+        monthly_water_data=monthly_water_data
     )
 
 
@@ -453,7 +469,7 @@ def view_electricity_bills():
 
     user_id = user['user_id']
 
-    # aggregated monthly consumption and bill
+    # aggregated monthly electricity consumption and bill
     cursor.execute("""
         SELECT 
             MONTH(consumption_date) AS bill_month, 
@@ -468,7 +484,9 @@ def view_electricity_bills():
     """, (user_id,))
     bills = cursor.fetchall()
     cursor.close()
-
+    
+    
+    
     # Render the updated template
     return render_template('electricity_bills.html', bills=bills)
 
