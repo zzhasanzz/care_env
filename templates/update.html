@@ -1,7 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,7 +9,6 @@
             font-family: Arial, sans-serif;
             margin: 20px auto;
             max-width: 1000px;
-            max-width: 1000px;
             line-height: 1.6;
             background-color: #f4f4f4;
             padding: 20px;
@@ -19,12 +16,7 @@
             border-radius: 8px;
         }
 
-        h1,
-        h2,
-        h3 {
-        h1,
-        h2,
-        h3 {
+        h1, h2, h3 {
             color: #333;
             text-align: center;
         }
@@ -43,12 +35,7 @@
             color: #333;
         }
 
-        input,
-        textarea,
-        select {
-        input,
-        textarea,
-        select {
+        input, textarea, select {
             width: 100%;
             padding: 10px;
             margin-bottom: 15px;
@@ -66,7 +53,6 @@
             cursor: pointer;
             font-size: 16px;
             margin-top: 10px;
-            margin-top: 10px;
         }
 
         button:hover {
@@ -77,19 +63,9 @@
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
         }
 
-        th,
-        td {
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            text-align: center;
-        th,
-        td {
+        th, td {
             padding: 8px 12px;
             border: 1px solid #ccc;
             text-align: center;
@@ -111,9 +87,12 @@
         #car_list li:hover {
             background: #ddd;
         }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
-
 
 <body>
     <h1>Welcome, {{ user['name'] }}!</h1>
@@ -121,92 +100,71 @@
 
     <h2>Update Your Information</h2>
 
-
     <form action="{{ url_for('update_user') }}" method="POST">
-
         <!-- Basic Info -->
-        <label>Phone Number:</label>
-        <input type="text" name="phone" placeholder="Enter your phone number">
+        <div class="form-group">
+            <label>Phone Number:</label>
+            <input type="text" name="phone" placeholder="Enter your phone number">
+        </div>
 
-        <!-- Basic Info -->
-        <label>Phone Number:</label>
-        <input type="text" name="phone" placeholder="Enter your phone number">
+        <div class="form-group">
+            <label>Address:</label>
+            <textarea name="address" placeholder="Enter your address"></textarea>
+        </div>
 
-        <label>Address:</label>
-        <textarea name="address" placeholder="Enter your address"></textarea>
-        <label>Address:</label>
-        <textarea name="address" placeholder="Enter your address"></textarea>
+        <div class="form-group">
+            <label>Division:</label>
+            <select name="division" id="division" onchange="loadProviders()">
+                <option value="" disabled selected>Select your division</option>
+                <option value="Dhaka">Dhaka</option>
+                <option value="Chattogram">Chattogram</option>
+                <option value="Khulna">Khulna</option>
+                <option value="Rajshahi">Rajshahi</option>
+                <option value="Barishal">Barishal</option>
+                <option value="Sylhet">Sylhet</option>
+                <option value="Rangpur">Rangpur</option>
+                <option value="Mymensingh">Mymensingh</option>
+            </select>
+        </div>
 
-        <label>Division:</label>
-        <select name="division" id="division" onchange="loadProviders()">
-        <label>Division:</label>
-        <select name="division" id="division" onchange="loadProviders()">
-            <option value="" disabled selected>Select your division</option>
-            <option value="Dhaka">Dhaka</option>
-            <option value="Chattogram">Chattogram</option>
-            <option value="Khulna">Khulna</option>
-            <option value="Rajshahi">Rajshahi</option>
-            <option value="Barishal">Barishal</option>
-            <option value="Sylhet">Sylhet</option>
-            <option value="Rangpur">Rangpur</option>
-            <option value="Mymensingh">Mymensingh</option>
-        </select>
+        <div class="form-group">
+            <label>Electricity Provider:</label>
+            <select id="electricity_provider" name="electricity_provider">
+                <option value="" disabled selected>Select electricity provider</option>
+            </select>
+        </div>
 
-        <label>Electricity Provider:</label>
-        <label>Electricity Provider:</label>
-        <select id="electricity_provider" name="electricity_provider">
-            <option value="" disabled selected>Select electricity provider</option>
-        </select>
+        <div class="form-group">
+            <label>Water Provider:</label>
+            <select id="water_provider" name="water_provider">
+                <option value="" disabled selected>Select water provider</option>
+            </select>
+        </div>
 
-        <label>Water Provider:</label>
-        <label>Water Provider:</label>
-        <select id="water_provider" name="water_provider">
-            <option value="" disabled selected>Select water provider</option>
-        </select>
+        <div class="form-group">
+            <label>Gas Provider:</label>
+            <select id="gas_provider" name="gas_provider">
+                <option value="" disabled selected>Select gas provider</option>
+            </select>
+        </div>
 
-        <label>Gas Provider:</label>
-        <label>Gas Provider:</label>
-        <select id="gas_provider" name="gas_provider">
-            <option value="" disabled selected>Select gas provider</option>
-        </select>
-
-        <label>Gas Type:</label>
-        <label>Gas Type:</label>
-        <select id="gas_type" name="gas_type">
-            <option value="" disabled selected>Select gas type</option>
-            <option value="metered">Metered</option>
-            <option value="non-metered">Non-metered</option>
-        </select>
+        <div class="form-group">
+            <label>Gas Type:</label>
+            <select id="gas_type" name="gas_type">
+                <option value="" disabled selected>Select gas type</option>
+                <option value="metered">Metered</option>
+                <option value="non-metered">Non-metered</option>
+            </select>
+        </div>
 
         <!-- Vehicles Section -->
         <h2>Your Vehicles</h2>
 
-        <!-- Vehicles Section -->
-        <h2>Your Vehicles</h2>
+        <div class="form-group">
+            <input type="text" id="car_search" oninput="searchCars()" placeholder="Search car models">
+            <ul id="car_list"></ul>
+        </div>
 
-        <input type="text" id="car_search" oninput="searchCars()" placeholder="Search car models">
-        <ul id="car_list"></ul>
-
-        <button type="button" onclick="addCarToTable('', 'New Vehicle')">Add New Vehicle</button>
-
-        <table id="vehicle_table">
-            <thead>
-                <tr>
-                    <th>Model Name</th>
-                    <th>Purchase Date</th>
-                    <th>Custom Daily KM</th>
-                    <th>License Plate</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Rows will be added dynamically -->
-            </tbody>
-        </table>
-
-        <input type="hidden" name="deleted_vehicle_ids" id="deleted_vehicle_ids">
-
-        <!-- Housing Information -->
         <button type="button" onclick="addCarToTable('', 'New Vehicle')">Add New Vehicle</button>
 
         <table id="vehicle_table">
@@ -233,17 +191,7 @@
             <input type="number" name="house_size_sqft" value="{{ housing.house_size_sqft }}"
                 placeholder="Enter house size in sqft" required>
         </div>
-        <div class="form-group">
-            <label>House Size (sqft):</label>
-            <input type="number" name="house_size_sqft" value="{{ housing.house_size_sqft }}"
-                placeholder="Enter house size in sqft" required>
-        </div>
 
-        <div class="form-group">
-            <label>Number of Members:</label>
-            <input type="number" name="num_members" value="{{ housing.num_members }}"
-                placeholder="Enter number of members" required>
-        </div>
         <div class="form-group">
             <label>Number of Members:</label>
             <input type="number" name="num_members" value="{{ housing.num_members }}"
@@ -255,28 +203,13 @@
             <input type="number" name="solar_panel_watt" value="{{ housing.solar_panel_watt }}"
                 placeholder="Enter solar panel wattage">
         </div>
-        <div class="form-group">
-            <label>Solar Panel Wattage:</label>
-            <input type="number" name="solar_panel_watt" value="{{ housing.solar_panel_watt }}"
-                placeholder="Enter solar panel wattage">
-        </div>
 
         <div class="form-group">
             <label>Wind Source Wattage:</label>
             <input type="number" name="wind_source_watt" value="{{ housing.wind_source_watt }}"
                 placeholder="Enter wind source wattage">
         </div>
-        <div class="form-group">
-            <label>Wind Source Wattage:</label>
-            <input type="number" name="wind_source_watt" value="{{ housing.wind_source_watt }}"
-                placeholder="Enter wind source wattage">
-        </div>
 
-        <div class="form-group">
-            <label>Other Renewable Source Wattage:</label>
-            <input type="number" name="other_renewable_source" value="{{ housing.other_renewable_source }}"
-                placeholder="Enter other renewable source wattage">
-        </div>
         <div class="form-group">
             <label>Other Renewable Source Wattage:</label>
             <input type="number" name="other_renewable_source" value="{{ housing.other_renewable_source }}"
@@ -315,183 +248,100 @@
             }
 
             function searchCars() {
-            function searchCars() {
-            const query = document.getElementById('car_search').value;
-            const carList = document.getElementById('car_list');
-            
-            if (query.length < 2) {
-                carList.style.display = 'none';
-                return;
+                const query = document.getElementById('car_search').value;
+                const carList = document.getElementById('car_list');
+                
+                if (query.length < 2) {
+                    carList.style.display = 'none';
+                    return;
+                }
+                
+                fetch(`/search_cars?q=${encodeURIComponent(query)}`)
+                    .then(response => {
+                        if (!response.ok) throw new Error('Network response was not ok');
+                        return response.json();
+                    })
+                    .then(data => {
+                        carList.innerHTML = '';
+                        
+                        if (data.cars && data.cars.length > 0) {
+                            data.cars.forEach(car => {
+                                const li = document.createElement('li');
+                                li.textContent = car.model_name;
+                                li.onclick = () => {
+                                    addCarToTable(car.id, car.model_name);
+                                    carList.style.display = 'none';
+                                    document.getElementById('car_search').value = '';
+                                };
+                                carList.appendChild(li);
+                            });
+                            carList.style.display = 'block';
+                        } else {
+                            carList.style.display = 'none';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error searching cars:', err);
+                        carList.style.display = 'none';
+                    });
             }
-            
-            fetch(`/search_cars?q=${encodeURIComponent(query)}`)
-                .then(response => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    return response.json();
-                })
-                .then(data => {
-                    carList.innerHTML = '';
-                    
-                    if (data.cars && data.cars.length > 0) {
-                        data.cars.forEach(car => {
-                            const li = document.createElement('li');
-                            li.textContent = car.model_name;
-                            li.onclick = () => {
-                                addCarToTable(car.id, car.model_name);
-                                carList.style.display = 'none';
-                                document.getElementById('car_search').value = '';
-                            };
-                            carList.appendChild(li);
-                        });
-                        carList.style.display = 'block';
-                    } else {
-                        carList.style.display = 'none';
-                    }
-                })
-                .catch(err => {
-                    console.error('Error searching cars:', err);
-                    carList.style.display = 'none';
-                });
-        }
 
             function addCarToTable(vehicleId, modelName, purchaseDate = '', customDailyKm = '', licensePlate = '', userVehicleId = '') {
-            const tbody = document.querySelector('#vehicle_table tbody');
-            const row = document.createElement('tr');
-            const counter = vehicleCounter++;
+                const tbody = document.querySelector('#vehicle_table tbody');
+                const row = document.createElement('tr');
+                const counter = vehicleCounter++;
 
-            row.innerHTML = `
-                <td>${modelName}
-                    <input type="hidden" name="vehicle_model_name_${counter}" value="${modelName}">
-                    <input type="hidden" name="vehicle_vehicle_id_${counter}" value="${vehicleId}">
-                    <input type="hidden" name="vehicle_user_vehicle_id_${counter}" value="${userVehicleId}">
-                </td>
-                <td><input type="date" name="purchase_date_${counter}" value="${purchaseDate}"></td>
-                <td><input type="number" name="custom_daily_km_${counter}" value="${customDailyKm}" placeholder="KM"></td>
-                <td><input type="text" name="license_plate_${counter}" value="${licensePlate}" placeholder="License"></td>
-                <td><button type="button" onclick="window.removeVehicleRow(this, '${userVehicleId}')">Delete</button></td>
-            `;
+                row.innerHTML = `
+                    <td>${modelName}
+                        <input type="hidden" name="vehicle_model_name_${counter}" value="${modelName}">
+                        <input type="hidden" name="vehicle_vehicle_id_${counter}" value="${vehicleId}">
+                        <input type="hidden" name="vehicle_user_vehicle_id_${counter}" value="${userVehicleId}">
+                    </td>
+                    <td><input type="date" name="purchase_date_${counter}" value="${purchaseDate}"></td>
+                    <td><input type="number" name="custom_daily_km_${counter}" value="${customDailyKm}" placeholder="KM"></td>
+                    <td><input type="text" name="license_plate_${counter}" value="${licensePlate}" placeholder="License"></td>
+                    <td><button type="button" onclick="window.removeVehicleRow(this, '${userVehicleId}')">Delete</button></td>
+                `;
 
-            tbody.appendChild(row);
-                    carList.innerHTML = '';
-                    
-                    if (data.cars && data.cars.length > 0) {
-                        data.cars.forEach(car => {
-                            const li = document.createElement('li');
-                            li.textContent = car.model_name;
-                            li.onclick = () => {
-                                addCarToTable(car.id, car.model_name);
-                                carList.style.display = 'none';
-                                document.getElementById('car_search').value = '';
-                            };
-                            carList.appendChild(li);
-                        });
-                        carList.style.display = 'block';
-                    } else {
-                        carList.style.display = 'none';
-                    }
-                })
-                .catch(err => {
-                    console.error('Error searching cars:', err);
-                    carList.style.display = 'none';
-                });
-        }
-
-            function addCarToTable(vehicleId, modelName, purchaseDate = '', customDailyKm = '', licensePlate = '', userVehicleId = '') {
-            const tbody = document.querySelector('#vehicle_table tbody');
-            const row = document.createElement('tr');
-            const counter = vehicleCounter++;
-
-            row.innerHTML = `
-                <td>${modelName}
-                    <input type="hidden" name="vehicle_model_name_${counter}" value="${modelName}">
-                    <input type="hidden" name="vehicle_vehicle_id_${counter}" value="${vehicleId}">
-                    <input type="hidden" name="vehicle_user_vehicle_id_${counter}" value="${userVehicleId}">
-                </td>
-                <td><input type="date" name="purchase_date_${counter}" value="${purchaseDate}"></td>
-                <td><input type="number" name="custom_daily_km_${counter}" value="${customDailyKm}" placeholder="KM"></td>
-                <td><input type="text" name="license_plate_${counter}" value="${licensePlate}" placeholder="License"></td>
-                <td><button type="button" onclick="window.removeVehicleRow(this, '${userVehicleId}')">Delete</button></td>
-            `;
-
-            tbody.appendChild(row);
-            document.getElementById('car_list').innerHTML = '';
-        }
+                tbody.appendChild(row);
+                document.getElementById('car_list').innerHTML = '';
+            }
 
             window.removeVehicleRow = function(btn, userVehicleId) {
-            if (userVehicleId && userVehicleId !== 'undefined') {
-                deletedIds.add(userVehicleId);
-                document.getElementById('deleted_vehicle_ids').value = Array.from(deletedIds).join(',');
-            }
-            btn.closest('tr').remove();
-        };
+                if (userVehicleId && userVehicleId !== 'undefined') {
+                    deletedIds.add(userVehicleId);
+                    document.getElementById('deleted_vehicle_ids').value = Array.from(deletedIds).join(',');
+                }
+                btn.closest('tr').remove();
+            };
 
             // Initialize existing vehicles
             {% if user_vehicles %}
-            const userVehicles = {{ user_vehicles| tojson
-        }};
-        userVehicles.forEach(v => {
-            addCarToTable(
-                v.vehicle_id,
-                v.model_name,
-                v.purchase_date ? v.purchase_date.split('T')[0] : '',
-                v.custom_daily_km || '',
-                v.license_plate || '',
-                v.user_vehicle_id  // Make sure this matches your data structure
-            );
-        });
-        {% endif %}
+                const userVehicles = {{ user_vehicles|tojson }};
+                userVehicles.forEach(v => {
+                    addCarToTable(
+                        v.vehicle_id,
+                        v.model_name,
+                        v.purchase_date ? v.purchase_date.split('T')[0] : '',
+                        v.custom_daily_km || '',
+                        v.license_plate || '',
+                        v.user_vehicle_id
+                    );
+                });
+            {% endif %}
 
-        // Close car list when clicking outside
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest('#car_search') && !e.target.closest('#car_list')) {
-                document.getElementById('car_list').style.display = 'none';
-            }
-        });
+            // Close car list when clicking outside
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest('#car_search') && !e.target.closest('#car_list')) {
+                    document.getElementById('car_list').style.display = 'none';
+                }
+            });
 
-        // Attach to global for access
-        window.loadProviders = loadProviders;
-        window.searchCars = searchCars;
-        window.addCarToTable = addCarToTable;
-    };
-
-            window.removeVehicleRow = function(btn, userVehicleId) {
-            if (userVehicleId && userVehicleId !== 'undefined') {
-                deletedIds.add(userVehicleId);
-                document.getElementById('deleted_vehicle_ids').value = Array.from(deletedIds).join(',');
-            }
-            btn.closest('tr').remove();
+            // Attach to global for access
+            window.loadProviders = loadProviders;
+            window.searchCars = searchCars;
+            window.addCarToTable = addCarToTable;
         };
-
-            // Initialize existing vehicles
-            {% if user_vehicles %}
-            const userVehicles = {{ user_vehicles| tojson
-        }};
-        userVehicles.forEach(v => {
-            addCarToTable(
-                v.vehicle_id,
-                v.model_name,
-                v.purchase_date ? v.purchase_date.split('T')[0] : '',
-                v.custom_daily_km || '',
-                v.license_plate || '',
-                v.user_vehicle_id  // Make sure this matches your data structure
-            );
-        });
-        {% endif %}
-
-        // Close car list when clicking outside
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest('#car_search') && !e.target.closest('#car_list')) {
-                document.getElementById('car_list').style.display = 'none';
-            }
-        });
-
-        // Attach to global for access
-        window.loadProviders = loadProviders;
-        window.searchCars = searchCars;
-        window.addCarToTable = addCarToTable;
-    };
     </script>
 </body>
-
-
 </html>
