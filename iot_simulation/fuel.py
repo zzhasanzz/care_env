@@ -295,28 +295,24 @@ def get_last_consumption_date(user_id, user_vehicle_id):
             conn.close()
 
 def get_simulation_date_ranges():
-    """Generate date ranges for current month and previous two months"""
+    """Generate date ranges for past 6 months + current month (up to today)"""
     today = date.today()
-    
-    # Start of current month
-    current_month_start = date(today.year, today.month, 1)
-    
-    # End of yesterday
-    current_month_end = today
+    current_month_start = today.replace(day=1)
 
-    # Previous month
-    prev_month_start = current_month_start - relativedelta(months=1)
-    prev_month_end = current_month_start - timedelta(days=1)
+    date_ranges = []
 
-    # Month before previous
-    prev_prev_month_start = prev_month_start - relativedelta(months=1)
-    prev_prev_month_end = prev_month_start - timedelta(days=1)
+    # Add last 6 full months
+    for i in range(6, 0, -1):
+        month_start = (current_month_start - relativedelta(months=1)).replace(day=1)
+        month_end = current_month_start - timedelta(days=1)
+        date_ranges.append((f"{month_start.strftime('%B_%Y')}", month_start, month_end))
+        current_month_start = month_start  # Move back one month
 
-    return [
-        ("current_month", current_month_start, current_month_end),
-        ("previous_month", prev_month_start, prev_month_end),
-        ("month_before_last", prev_prev_month_start, prev_prev_month_end)
-    ]
+    # Finally add current month up to today
+    current_month_real_start = today.replace(day=1)
+    date_ranges.append(("current_month", current_month_real_start, today))
+
+    return date_ranges
 
 
 def calculate_and_log_fuel_consumption():

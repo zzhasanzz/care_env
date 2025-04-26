@@ -47,7 +47,7 @@ appliances = {
         "daily_hours": lambda: 24
     },
     "water_heater": {
-        "power": 2.0,
+        "power": 1.0,
         "winter_hours": lambda: max(0, np.random.normal(1, 0.5)),
         "summer_hours": lambda: max(0, np.random.normal(0.5, 0.2))
     }
@@ -150,16 +150,26 @@ def get_season(date_obj):
         return "winter"
 
 def get_simulation_date_ranges():
+    """
+    Generate date ranges for the last 6 full months + current month till today.
+    """
     today = datetime.date.today()
     current_month_start = today.replace(day=1)
-    prev_month_start = (current_month_start - datetime.timedelta(days=1)).replace(day=1)
-    prev_prev_month_start = (prev_month_start - datetime.timedelta(days=1)).replace(day=1)
-    
-    return [
-        ("current_month", current_month_start, today),
-        ("previous_month", prev_month_start, current_month_start - datetime.timedelta(days=1)),
-        ("month_before_last", prev_prev_month_start, prev_month_start - datetime.timedelta(days=1))
-    ]
+
+    date_ranges = []
+
+    # Add last 6 full months
+    for i in range(6, 0, -1):
+        month_start = (current_month_start - datetime.timedelta(days=1)).replace(day=1)
+        month_end = current_month_start - datetime.timedelta(days=1)
+        date_ranges.append((f"{month_start.strftime('%B_%Y')}", month_start, month_end))
+        current_month_start = month_start  # Move one month back
+
+    # Now add current month up to today
+    current_month_real_start = today.replace(day=1)
+    date_ranges.append(("current_month", current_month_real_start, today))
+
+    return date_ranges
 
 def simulate_renewable_generation(solar_capacity, wind_capacity, season="summer"):
     solar_factors = {"summer": np.random.normal(5, 1), "transition": np.random.normal(4, 1), "winter": np.random.normal(3, 1)}

@@ -3,6 +3,7 @@ import numpy as np
 import os
 import datetime
 from dotenv import load_dotenv
+from dateutil.relativedelta import relativedelta
 # from db import get_db_connection
 
 load_dotenv()  # This loads environment variables from the .env file
@@ -163,12 +164,11 @@ def log_daily_water_consumption(user_id, utility_provider_id, date, liters_consu
 
 def calculate_and_log_water_consumption():
     """
-    Calculate and log daily water consumption for all users, only filling missing dates.
-    For users with no existing data, generates records from start of current month.
+    Correct version: fill missing days for past 6 months + current month
     """
     all_users = fetch_all_users()
     today = datetime.date.today()
-    current_month_start = datetime.date(today.year, today.month, 1)
+    six_months_ago = today.replace(day=1) - relativedelta(months=6)
 
     for user in all_users:
         user_id = user['user_id']
@@ -178,59 +178,52 @@ def calculate_and_log_water_consumption():
         num_cars = user['num_cars']
         unit_price = user['unit_price']
 
-        # Get the most recent consumption date for this user
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT MAX(consumption_date) as last_date 
-            FROM daily_water_consumption 
-            WHERE user_id = %s
-        """, (user_id,))
-        result = cursor.fetchone()
-        last_date = result[0] if result and result[0] else None
-        cursor.close()
-        conn.close()
+        print(f"\nProcessing water data for user {user_id}")
 
-        # Determine the starting date for simulation
-        if last_date:
-            start_date = last_date + datetime.timedelta(days=1)
-            if start_date > today:
-                print(f"User {user_id} already up to date (last record: {last_date})")
+        current_date = six_months_ago
+        while current_date <= today:
+            # Check if this date's record already exists
+            conn = get_db_connection()
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                SELECT 1 FROM daily_water_consumption
+                WHERE user_id = %s AND consumption_date = %s
+            """, (user_id, current_date))
+
+            exists = cursor.fetchone()
+            cursor.close()
+            conn.close()
+
+            if exists:
+                # Already recorded, no need to insert
+                current_date += datetime.timedelta(days=1)
                 continue
-        else:
-            # For new users, simulate from start of current month
-            start_date = current_month_start
 
-        # Calculate number of days to simulate
-        days_to_simulate = (today - start_date).days + 1
-        if days_to_simulate <= 0:
-            continue
-
-        print(f"Generating {days_to_simulate} days of water data for user {user_id} from {start_date}")
-
-        # Simulate consumption for each missing day
-        for day_offset in range(days_to_simulate):
-            date = start_date + datetime.timedelta(days=day_offset)
-            
-            # Determine season based on month
-            month = date.month
+            # Not recorded -> simulate and log it
+            month = current_date.month
             season = "summer" if 4 <= month <= 9 else "winter"
-            
+
             liters_consumed = simulate_daily_water_usage(
                 square_footage=house_size,
                 num_members=num_members,
-                has_garden=True,  # Default assumption
+                has_garden=True,
                 num_cars=num_cars,
                 season=season
             )
-            
+
             log_daily_water_consumption(
                 user_id=user_id,
                 utility_provider_id=utility_provider_id,
-                date=date,
+                date=current_date,
                 liters_consumed=liters_consumed,
                 unit_price=unit_price
             )
+
+            current_date += datetime.timedelta(days=1)
+
+    print("\n✅ Water simulation complete for all users!")
+
 
 # Function to simulate daily water usage
 def simulate_daily_water_usage(square_footage, num_members, has_garden=True, num_cars=1, season="summer"):

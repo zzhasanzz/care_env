@@ -5,6 +5,8 @@ import os
 from datetime import date, timedelta
 from dotenv import load_dotenv
 import calendar
+from dateutil.relativedelta import relativedelta  
+
 
 load_dotenv()
 
@@ -112,7 +114,7 @@ def simulate_and_log_all_users_gas():
     users = fetch_all_users_gas_info()
     today = date.today()
     
-    start_date = today.replace(day=1) - timedelta(days=62)  # Two months back
+    start_date = (today.replace(day=1) - relativedelta(months=6))  # 6 months back
     end_date = today
 
     print(f"Starting simulation from {start_date} to {end_date}")
