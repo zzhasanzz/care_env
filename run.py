@@ -241,6 +241,18 @@ def dashboard():
     fuel_consumption_records = cursor.fetchall()
 
 
+    # Fetch last 15 days' carbon footprint
+    cursor.execute("""
+        SELECT consumption_date, total_emission_kg, emission_tag, suggestions
+        FROM daily_carbon_footprint
+        WHERE user_id = %s
+        ORDER BY consumption_date DESC
+        LIMIT 15
+    """, (user_id,))
+    carbon_footprint_records = cursor.fetchall()
+
+
+
 
     # Fetch aggregated monthly electricity usage
     cursor.execute("""
@@ -296,7 +308,47 @@ def dashboard():
         GROUP BY year, month
         ORDER BY year DESC, month DESC
     """, (user_id,))
-    monthly_fuel_data = cursor.fetchall()   
+    monthly_fuel_data = cursor.fetchall()  
+
+    # Fetch monthly carbon emissions
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month,
+            YEAR(consumption_date) AS year,
+            SUM(total_emission_kg) AS total_carbon_kg
+        FROM daily_carbon_footprint
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    monthly_carbon_data = cursor.fetchall()
+
+
+    # Determine average emission level
+    emission_levels = [record['emission_tag'] for record in carbon_footprint_records]
+
+    if emission_levels.count('high') > len(emission_levels) * 0.5:
+        average_emission_level = "high"
+    elif emission_levels.count('moderate') > len(emission_levels) * 0.5:
+        average_emission_level = "moderate"
+    else:
+        average_emission_level = "low"
+
+    reduction_suggestions = list(set(
+        record['suggestions'] for record in carbon_footprint_records if record['suggestions']
+    ))
+
+    recent_carbon_footprint = [
+        {
+            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "carbon_kg": record["total_emission_kg"],
+            "level": record["emission_tag"],
+            "suggestion": record["suggestions"]
+        }
+        for record in carbon_footprint_records
+    ]
+
+
     
 
     # Fetch user's vehicles (NOW FROM user_vehicles)
@@ -362,6 +414,11 @@ def dashboard():
         monthly_fuel_data=monthly_fuel_data,
         recent_gas_consumption=recent_gas_consumption,
         recent_fuel_consumption=recent_fuel_consumption,
+        recent_carbon_footprint=recent_carbon_footprint,
+        monthly_carbon_data=monthly_carbon_data,
+        average_emission_level=average_emission_level,
+        reduction_suggestions=reduction_suggestions,
+
     )
 
 

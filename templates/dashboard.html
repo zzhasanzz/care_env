@@ -151,6 +151,42 @@
     </div>
 
     <div class="section">
+        <h2>Daily Carbon Footprint (Last 15 Days)</h2>
+        <canvas id="dailyCarbonChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+
+    <div class="section">
+        <h2>Monthly Carbon Footprint</h2>
+        <canvas id="carbonHistogramChart" style="max-width: 65%; height: 300px;"></canvas>
+    </div>
+
+    <div class="section" style="display: flex; justify-content: center;">
+        <div style="
+            background: #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-radius: 15px;
+            padding: 20px 40px;
+            max-width: 400px;
+            text-align: center;
+        ">
+            <h2 style="color: #68a469;">Current Emission Level</h2>
+            <canvas id="emissionLevelChart" style="max-width: 300px; height: 300px; margin: 0 auto;"></canvas>
+            <p style="margin-top: 20px; font-size: 1.2rem; color: #333;">
+                You are emitting: 
+                <strong style="
+                    color: {{ 'red' if average_emission_level == 'high' else 'orange' if average_emission_level == 'moderate' else 'green' }};
+                ">
+                    {{ average_emission_level|capitalize }}
+                </strong> 
+                amount of CO₂.
+            </p>
+        </div>
+    </div>
+    
+
+    
+
+    <div class="section">
         <a href="{{ url_for('update_user') }}" class="btn">Update Your Information</a>
     </div>
 
@@ -554,6 +590,115 @@
             }
         });
     </script>
+
+    <script>
+        const recentCarbon = {{ recent_carbon_footprint | tojson }};
+
+        const carbonLabels = recentCarbon.map(record => record.date);
+        const carbonKg = recentCarbon.map(record => record.carbon_kg);
+
+        const ctxCarbon = document.getElementById('dailyCarbonChart').getContext('2d');
+        const dailyCarbonChart = new Chart(ctxCarbon, {
+            type: 'line',
+            data: {
+                labels: carbonLabels,
+                datasets: [{
+                    label: 'Daily CO₂ Emissions (kg)',
+                    data: carbonKg,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: true },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Date' } },
+                    y: { title: { display: true, text: 'CO₂ Emissions (kg)' }, beginAtZero: true }
+                }
+            }
+        });
+    </script>
+
+
+
+    <script>
+        const monthlyCarbon = {{ monthly_carbon_data | tojson }};
+        const carbonHistogramLabels = monthlyCarbon.map(record => `${record.month}/${record.year}`);
+        const monthlyCarbonKg = monthlyCarbon.map(record => record.total_carbon_kg);
+
+        const ctxCarbonHistogram = document.getElementById('carbonHistogramChart').getContext('2d');
+        const carbonHistogramChart = new Chart(ctxCarbonHistogram, {
+            type: 'bar',
+            data: {
+                labels: carbonHistogramLabels,
+                datasets: [{
+                    label: 'Monthly CO₂ Emissions (kg)',
+                    data: monthlyCarbonKg,
+                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Month/Year' } },
+                    y: { title: { display: true, text: 'CO₂ (kg)' }, beginAtZero: true }
+                }
+            }
+        });
+    </script>
+
+<script>
+    const emissionPercentage = {{ 100 if average_emission_level == 'high' else 66 if average_emission_level == 'moderate' else 33 }};
+    const remainingPercentage = 100 - emissionPercentage;
+
+    const ctxEmissionLevel = document.getElementById('emissionLevelChart').getContext('2d');
+    const emissionLevelChart = new Chart(ctxEmissionLevel, {
+        type: 'doughnut',
+        data: {
+            labels: ['Your Emissions', 'Remaining Safe Limit'],
+            datasets: [{
+                data: [emissionPercentage, remainingPercentage],
+                backgroundColor: [
+                    emissionPercentage >= 80 ? 'rgba(255, 99, 132, 0.7)' : 
+                    emissionPercentage >= 50 ? 'rgba(255, 205, 86, 0.7)' : 
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(200, 200, 200, 0.3)'
+                ],
+                borderColor: [
+                    emissionPercentage >= 80 ? 'rgba(255, 99, 132, 1)' :
+                    emissionPercentage >= 50 ? 'rgba(255, 205, 86, 1)' :
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(200, 200, 200, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            cutout: '70%',
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.raw + '%';
+                        }
+                    }
+                },
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
 
 </body>
 
