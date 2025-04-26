@@ -1,92 +1,128 @@
+import MySQLdb
 import numpy as np
+import os
+from datetime import date, timedelta
+from dotenv import load_dotenv
+import calendar
 
+load_dotenv()
 
-# Constants for Non-Metered Households
+MYSQL_HOST = os.getenv('MYSQL_HOST')
+MYSQL_USER = os.getenv('MYSQL_USER')
+MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD')
+MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'care_env')
+
+def get_db_connection():
+    conn = MySQLdb.connect(
+        host=MYSQL_HOST,
+        user=MYSQL_USER,
+        passwd=MYSQL_PASSWORD,
+        database=MYSQL_DATABASE
+    )
+    return conn
+
+# Constants
 NON_METERED_SINGLE_BURNER_MONTHLY = 82  # Cubic meters
 NON_METERED_DOUBLE_BURNER_MONTHLY = 88  # Cubic meters
 SINGLE_BURNER_RATE = 750  # Tk/month
 DOUBLE_BURNER_RATE = 800  # Tk/month
+METERED_GAS_PRICE = 9.10  # Tk/cubic meter
 
-# Metered Gas Price
-METERED_GAS_PRICE = 9.10  # Tk per cubic meter
-
-NON_METERED_FLOW_RATES = {
-    "single_burner": 12 * 10 * 26 * 0.85,  
-    "double_burner": 21 * 8 * 26 * 0.85   
-}
-
-# Conversion factor (cubic feet to cubic meters)
-CUBIC_FEET_TO_CUBIC_METERS = 0.0283168
-
-# Simulate daily gas consumption for metered households
-def simulate_metered_daily_gas_consumption(num_members, activities=None):
-    """
-    Simulate daily gas consumption for metered households.
-    :param num_members: Number of household members.
-    :param activities: Dictionary of activities and their gas usage (cubic meters/day).
-    :return: Daily gas consumption in cubic meters.
-    """
-    if activities is None:
-        activities = {
-            "cooking": lambda: np.random.normal(0.5, 0.1) * num_members,  # Per member
-            "water_heating": lambda: np.random.normal(0.3, 0.05) * num_members,  # Per member
-            "space_heating": lambda: np.random.uniform(1.0, 2.0)  # Random hours/day
-        }
-
+def simulate_metered_daily_gas_consumption(num_members):
+    activities = {
+        "cooking": lambda: np.random.normal(0.5, 0.1) * num_members,
+        "water_heating": lambda: np.random.normal(0.3, 0.05) * num_members,
+        "space_heating": lambda: np.random.uniform(1.0, 2.0)
+    }
     daily_gas_usage = sum(func() for func in activities.values())
-    return max(0, daily_gas_usage)  # Ensure no negative usage
+    return max(0, daily_gas_usage)
 
-# Calculate monthly gas bill for metered households
-def calculate_metered_gas_bill(total_gas_usage, price_per_cubic_meter=METERED_GAS_PRICE):
-    return total_gas_usage * price_per_cubic_meter
+def fetch_all_users_gas_info():
+    conn = get_db_connection()
+    cursor = conn.cursor(MySQLdb.cursors.DictCursor)
+    
+    cursor.execute("""
+        SELECT u.id, u.gas_type, uh.num_members 
+        FROM user u
+        LEFT JOIN user_housing uh ON u.id = uh.user_id
+        WHERE u.gas_provider IS NOT NULL
+    """)
+    
+    users = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return users
 
-# Simulate monthly gas consumption
-def simulate_monthly_gas_consumption(household_type="metered", num_members=4, burner_type="double", days=31):
-    if household_type == "non_metered":
-        # Calculate fixed usage and billing for non-metered households
-        if burner_type == "single":
-            monthly_usage = NON_METERED_SINGLE_BURNER_MONTHLY
-            monthly_bill = SINGLE_BURNER_RATE
-        elif burner_type == "double":
-            monthly_usage = NON_METERED_DOUBLE_BURNER_MONTHLY
-            monthly_bill = DOUBLE_BURNER_RATE
-        else:
-            raise ValueError("Invalid burner type. Use 'single' or 'double'.")
-        return [monthly_usage / days] * days, monthly_usage, monthly_bill
+def log_daily_gas_consumption(user_id, date_obj, gas_used, gas_cost, household_type, burner_type=None, num_members=None):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT 1 FROM daily_gas_consumption 
+        WHERE user_id = %s AND consumption_date = %s
+    """, (user_id, date_obj))
+    
+    if cursor.fetchone():
+        cursor.close()
+        conn.close()
+        return False  # Already logged
+    
+    cursor.execute("""
+        INSERT INTO daily_gas_consumption
+        (user_id, consumption_date, gas_used_cubic_meters, gas_cost, household_type, burner_type, num_members)
+        VALUES (%s, %s, %s, %s, %s, %s, %s)
+    """, (user_id, date_obj, gas_used, gas_cost, household_type, burner_type, num_members))
+    
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return True
 
-    elif household_type == "metered":
-        # Simulate daily usage and calculate bill for metered households
-        daily_usages = [simulate_metered_daily_gas_consumption(num_members) for _ in range(days)]
-        total_usage = sum(daily_usages)
-        monthly_bill = calculate_metered_gas_bill(total_usage)
-        return daily_usages, total_usage, monthly_bill
-    else:
-        raise ValueError("Invalid household type. Use 'metered' or 'non_metered'.")
+def simulate_and_log_all_users_gas():
+    users = fetch_all_users_gas_info()
+    today = date.today()
+    
+    start_date = today.replace(day=1) - timedelta(days=62)  # Two months back
+    end_date = today
 
-# Example: Simulating gas consumption
-household_type = "metered"  # Options: "metered" or "non_metered"
-burner_type = "double"  # For non-metered households: "single" or "double"
-num_members = 5  # For metered households
-days = 31  # Number of days in a month
+    print(f"Starting simulation from {start_date} to {end_date}")
+    
+    for user in users:
+        user_id = user['id']
+        raw_household_type = user['gas_type'] or "metered"  # fallback if null
+        num_members = user['num_members'] if user['num_members'] else 4
+        
+        # Normalize gas type
+        household_type = raw_household_type.strip().lower().replace("-", "_")
+        
+        for single_date in (start_date + timedelta(n) for n in range((end_date - start_date).days + 1)):
+            
+            if household_type == "metered":
+                daily_usage = simulate_metered_daily_gas_consumption(num_members)
+                daily_cost = daily_usage * METERED_GAS_PRICE
+                log_daily_gas_consumption(user_id, single_date, daily_usage, daily_cost, "metered", num_members=num_members)
+            
+            elif household_type == "non_metered":
+                # Randomly select burner type with 90% double, 10% single
+                burner_type = np.random.choice(["double", "single"], p=[0.9, 0.1])
+                
+                days_in_month = calendar.monthrange(single_date.year, single_date.month)[1]
+                
+                if burner_type == "single":
+                    daily_usage = NON_METERED_SINGLE_BURNER_MONTHLY / days_in_month
+                    daily_cost = SINGLE_BURNER_RATE / days_in_month
+                else:
+                    daily_usage = NON_METERED_DOUBLE_BURNER_MONTHLY / days_in_month
+                    daily_cost = DOUBLE_BURNER_RATE / days_in_month
+                
+                log_daily_gas_consumption(user_id, single_date, daily_usage, daily_cost, "non_metered", burner_type=burner_type)
+            
+            else:
+                print(f"Unknown gas type for user {user_id}: {raw_household_type} - skipping")
+    
+    print("Simulation completed for all users ✅")
 
-# Simulate gas usage and billing
-daily_gas_usages, total_monthly_gas_usage, monthly_gas_bill = simulate_monthly_gas_consumption(
-    household_type=household_type,
-    num_members=num_members,
-    burner_type=burner_type,
-    days=days
-)
-
-# Print results
-print(f"Household Type: {household_type.capitalize()}")
-if household_type == "non_metered":
-    print(f"Burner Type: {burner_type.capitalize()} Burner")
-print("\nDaily Gas Consumption (cubic meters):")
-for day, usage in enumerate(daily_gas_usages, start=1):
-    print(f"Day {day}: {usage:.2f} cubic meters")
-print("\nSummary:")
-print(f"Total Monthly Gas Usage: {total_monthly_gas_usage:.2f} cubic meters")
-print(f"Total Monthly Gas Bill: Tk {monthly_gas_bill:.2f}")
-
-
-#https://bids.org.bd/page/researches/?rid=203#:~:text=For%20measuring%20the%20quantity%2C%20the,Tk.%2Fcubic%20meter).
+if _name_ == "_main_":
+    print("Starting gas consumption simulation...")
+    simulate_and_log_all_users_gas()
+    print("Gas consumption simulation fully completed.")
