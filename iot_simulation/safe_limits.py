@@ -112,8 +112,8 @@ def update_safe_limits_for_user(user_id):
 
     # Default per member safe limits
     base_limits = {
-        'electricity': 55,  
-        'gas': 20,
+        'electricity': 65,  
+        'gas': 30,
         'fuel': 50,
         'water': 7
     }
@@ -161,5 +161,5 @@ def update_safe_limits_for_user(user_id):
     conn.close()
 
 
-if _name_ == "_main_":
+if __name__ == "_main_":
     create_safe_limits_for_all_users()

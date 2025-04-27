@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,11 +16,13 @@
             background-color: #f7f7f7;
         }
 
+
         .container {
             display: flex;
             min-height: 100vh;
             overflow: hidden;
         }
+
 
         .sidebar {
             width: 220px;
@@ -35,9 +38,11 @@
             box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
         }
 
+
         .sidebar-section {
             margin-bottom: 30px;
         }
+
 
         .sidebar-btn {
             display: block;
@@ -52,9 +57,11 @@
             transition: background-color 0.3s;
         }
 
+
         .sidebar-btn:hover {
             background-color: #4a6d4a;
         }
+
 
         .logout {
             text-align: center;
@@ -64,6 +71,7 @@
             padding: 10px 0;
             font-size: 14px;
         }
+
 
         .main-content {
             margin-left: 260px;
@@ -83,10 +91,12 @@
             margin-bottom: 30px;
         }
 
+
         .section h2 {
             color: #68a469;
             margin-bottom: 15px;
         }
+
 
         canvas {
             max-width: 100%;
@@ -188,20 +198,44 @@
                 <canvas id="carbonHistogramChart"></canvas>
             </div>
 
-            <div class="section" style="display: flex; justify-content: center;">
+
+            <div class="section"
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 60px; margin-top: 60px; margin-left: 120px;">
+
                 <div
-                    style="background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 400px;">
-                    <h2 style="color: #68a469;">Current Emission Level</h2>
-                    <canvas id="emissionLevelChart" style="max-width: 300px; height: 300px;"></canvas>
-                    <p style="margin-top: 20px; font-size: 1.2rem; text-align: center;">
-                        You are emitting:
-                        <strong
-                            style="color: {{ 'red' if average_emission_level == 'high' else 'orange' if average_emission_level == 'moderate' else 'green' }};">
-                            {{ average_emission_level|capitalize }}
-                        </strong> amount of CO₂.
-                    </p>
+                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
+                    <h2 style="color: #68a469;">Total Emission</h2>
+                    <canvas id="totalEmissionChart" style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+                </div>
+
+                <div
+                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
+                    <h2 style="color: #68a469;">Electricity Emission</h2>
+                    <canvas id="electricityEmissionChart"
+                        style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+                </div>
+                <div
+                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
+                    <h2 style="color: #68a469;">Fuel Emission</h2>
+                    <canvas id="fuelEmissionChart" style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
                 </div>
             </div>
+
+            <div class="section"
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 60px; margin-top: 60px; margin-right: 120px; margin-left: 240px;">
+
+                <div
+                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
+                    <h2 style="color: #68a469;">Gas Emission</h2>
+                    <canvas id="gasEmissionChart" style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+                </div>
+                <div
+                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
+                    <h2 style="color: #68a469;">Water Emission</h2>
+                    <canvas id="waterEmissionChart" style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+                </div>
+            </div>
+
         </div>
         <!-- Main Content End -->
 
@@ -680,49 +714,77 @@
     </script>
 
     <script>
-        const emissionPercentage = {{ 100 if average_emission_level == 'high' else 66 if average_emission_level == 'moderate' else 33 }};
-        const remainingPercentage = 100 - emissionPercentage;
+        const monthlyCarbonDetailedData = {{ monthly_carbon_detailed_data | tojson }};
+        const safeLimits = {{ safe_limits | tojson }};
 
-        const ctxEmissionLevel = document.getElementById('emissionLevelChart').getContext('2d');
-        const emissionLevelChart = new Chart(ctxEmissionLevel, {
-            type: 'doughnut',
-            data: {
-                labels: ['Your Emissions', 'Remaining Safe Limit'],
-                datasets: [{
-                    data: [emissionPercentage, remainingPercentage],
-                    backgroundColor: [
-                        emissionPercentage >= 80 ? 'rgba(255, 99, 132, 0.7)' :
-                            emissionPercentage >= 50 ? 'rgba(255, 205, 86, 0.7)' :
-                                'rgba(75, 192, 192, 0.7)',
-                        'rgba(200, 200, 200, 0.3)'
-                    ],
-                    borderColor: [
-                        emissionPercentage >= 80 ? 'rgba(255, 99, 132, 1)' :
-                            emissionPercentage >= 50 ? 'rgba(255, 205, 86, 1)' :
-                                'rgba(75, 192, 192, 1)',
-                        'rgba(200, 200, 200, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                cutout: '70%',
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                return context.label + ': ' + context.raw + '%';
+        const latestData = monthlyCarbonDetailedData.length > 0 ? monthlyCarbonDetailedData[0] : null;
+
+        if (latestData) {
+            const electricityEmitted = latestData.total_electricity_kg || 0;
+            const fuelEmitted = latestData.total_fuel_kg || 0;
+            const gasEmitted = latestData.total_gas_kg || 0;
+            const waterEmitted = latestData.total_water_kg || 0;
+            const totalEmitted = latestData.total_carbon_kg || 0;
+
+            const electricitySafe = safeLimits.electricity;
+            const fuelSafe = safeLimits.fuel;
+            const gasSafe = safeLimits.gas;
+            const waterSafe = safeLimits.water;
+            const totalSafe = safeLimits.total;
+
+            function createStyledDoughnut(ctxId, emitted, safeLimit) {
+                const percentageUsed = Math.min(100, (emitted / safeLimit) * 100);
+                const percentageRemaining = 100 - percentageUsed;
+
+                const ctx = document.getElementById(ctxId).getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Your Emissions', 'Remaining Safe Limit'],
+                        datasets: [{
+                            data: [percentageUsed, percentageRemaining],
+                            backgroundColor: [
+                                percentageUsed >= 80 ? 'rgba(255, 99, 132, 0.7)' :
+                                    percentageUsed >= 50 ? 'rgba(255, 205, 86, 0.7)' :
+                                        'rgba(75, 192, 192, 0.7)',
+                                'rgba(200, 200, 200, 0.3)'
+                            ],
+                            borderColor: [
+                                percentageUsed >= 80 ? 'rgba(255, 99, 132, 1)' :
+                                    percentageUsed >= 50 ? 'rgba(255, 205, 86, 1)' :
+                                        'rgba(75, 192, 192, 1)',
+                                'rgba(200, 200, 200, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        cutout: '70%',
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return context.label + ': ' + context.raw.toFixed(1) + '%';
+                                    }
+                                }
+                            },
+                            legend: {
+                                display: true,
+                                position: 'bottom'
                             }
                         }
-                    },
-                    legend: {
-                        display: true,
-                        position: 'bottom'
                     }
-                }
+                });
             }
-        });
+
+            createStyledDoughnut('electricityEmissionChart', electricityEmitted, electricitySafe);
+            createStyledDoughnut('fuelEmissionChart', fuelEmitted, fuelSafe);
+            createStyledDoughnut('gasEmissionChart', gasEmitted, gasSafe);
+            createStyledDoughnut('waterEmissionChart', waterEmitted, waterSafe);
+            createStyledDoughnut('totalEmissionChart', totalEmitted, totalSafe);
+        }
     </script>
+
 
 </body>
 
