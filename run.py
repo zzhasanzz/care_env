@@ -323,6 +323,50 @@ def dashboard():
     """, (user_id,))
     monthly_carbon_data = cursor.fetchall()
 
+    # 1. Fetch Monthly Carbon Footprint (electricity, fuel, gas, water individually)
+    cursor.execute("""
+        SELECT 
+            MONTH(consumption_date) AS month,
+            YEAR(consumption_date) AS year,
+            SUM(electricity_emission_kg) AS total_electricity_kg,
+            SUM(fuel_emission_kg) AS total_fuel_kg,
+            SUM(gas_emission_kg) AS total_gas_kg,
+            SUM(water_emission_kg) AS total_water_kg,
+            SUM(total_emission_kg) AS total_carbon_kg
+        FROM daily_carbon_footprint
+        WHERE user_id = %s
+        GROUP BY year, month
+        ORDER BY year DESC, month DESC
+    """, (user_id,))
+    monthly_carbon_detailed_data = cursor.fetchall()
+
+
+    # 2. Fetch the user's safe limits
+    cursor.execute("""
+        SELECT electricity_safe_limit, gas_safe_limit, fuel_safe_limit, water_safe_limit, total_safe_limit
+        FROM safe_limits
+        WHERE user_id = %s
+    """, (user_id,))
+    safe_limits_row = cursor.fetchone()
+
+    if safe_limits_row:
+        safe_limits = {
+            'electricity': safe_limits_row['electricity_safe_limit'],
+            'gas': safe_limits_row['gas_safe_limit'],
+            'fuel': safe_limits_row['fuel_safe_limit'],
+            'water': safe_limits_row['water_safe_limit'],
+            'total': safe_limits_row['total_safe_limit'],
+        }
+    else:
+        # fallback if not found
+        safe_limits = {
+            'electricity': 200,
+            'gas': 200,
+            'fuel': 200,
+            'water': 50,
+            'total': 500
+        }
+
 
     # Determine average emission level
     emission_levels = [record['emission_tag'] for record in carbon_footprint_records]
@@ -347,9 +391,6 @@ def dashboard():
         }
         for record in carbon_footprint_records
     ]
-
-
-    
 
     # Fetch user's vehicles (NOW FROM user_vehicles)
     cursor.execute("""
@@ -418,9 +459,9 @@ def dashboard():
         monthly_carbon_data=monthly_carbon_data,
         average_emission_level=average_emission_level,
         reduction_suggestions=reduction_suggestions,
-
+        monthly_carbon_detailed_data=monthly_carbon_detailed_data,
+        safe_limits=safe_limits,
     )
-
 
 
 @app.route('/update_user', methods=['GET', 'POST'])
