@@ -25,10 +25,17 @@
                 <td>{{ bill.year }}</td>
                 <td>{{ bill.total_liters }}</td>
                 <td>{{ bill.total_bill }}</td>
-                <td>due</td>  <!-- assuming all bills are due for now -->
+                <td>{{ bill.payment_status }}</td>  <!-- assuming all bills are due for now -->
                 <td>
-                    <a href="{{ url_for('view_fuel_bill_detail', month=bill.month, year=bill.year) }}" class="btn">View Bill</a>
-                    <a href="#" class="btn due">Pay</a>
+                    <a href="{{ url_for('view_fuel_bill_detail', month=bill.month, year=bill.year) }}" 
+                       class="btn btn-view">View Bill</a>
+                    
+                    {% if bill.payment_status != 'paid' %}
+                        <a href="#" 
+                           class="btn due">Pay </a>
+                    {% else %}
+                        <button class="btn paid" disabled>Paid</button>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

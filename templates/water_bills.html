@@ -25,10 +25,17 @@
                 <td>{{ bill.year }}</td>
                 <td>{{ "%.2f"|format(bill.total_liters) }}</td>
                 <td>{{ "%.2f"|format(bill.total_bill) }}</td>
-                <td>due</td>
+                <td>{{ bill.payment_status }}</td>
                 <td>
-                    <a href="{{ url_for('view_water_bill_detail', month=bill.month, year=bill.year) }}" class="btn">View Bill</a>
-                    <a href="#" class="btn due">Pay</a>
+                    <a href="{{ url_for('view_water_bill_detail', month=bill.month, year=bill.year) }}" 
+                       class="btn btn-view">View Bill</a>
+                    
+                    {% if bill.payment_status != 'paid' %}
+                        <a href="#" 
+                           class="btn due">Pay </a>
+                    {% else %}
+                        <button class="btn paid" disabled>Paid</button>
+                    {% endif %}
                 </td>
             </tr>
             {% endfor %}

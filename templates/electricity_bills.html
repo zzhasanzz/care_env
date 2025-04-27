@@ -30,6 +30,8 @@
                     <a href="{{ url_for('view_electricity_bill_detail', month=bill.bill_month, year=bill.bill_year) }}" class="btn">View Bill</a>
                     {% if bill.payment_status == 'due' %}
                     <a href="#" class="btn due">Pay</a>
+                    {% else %}
+                    <button class="btn paid" disabled>Paid</button>
                     {% endif %}
                 </td>
             </tr>

@@ -950,7 +950,12 @@ def view_electricity_bills():
             YEAR(consumption_date) AS bill_year, 
             SUM(units_consumed) AS total_units, 
             SUM(daily_bill) AS total_bill,
-            'due' AS payment_status -- For now, set all bills as 'due'
+            -- Check if all days in the month are paid
+            CASE 
+                WHEN SUM(CASE WHEN payment_status = 'paid' THEN 0 ELSE 1 END) = 0 
+                THEN 'paid' 
+                ELSE 'due' 
+            END AS payment_status
         FROM daily_electricity_consumption
         WHERE user_id = %s
         GROUP BY bill_year, bill_month
@@ -1016,7 +1021,12 @@ def view_water_bills():
             MONTH(consumption_date) AS month,
             YEAR(consumption_date) AS year,
             SUM(liters_consumed) AS total_liters,
-            SUM(daily_bill) AS total_bill
+            SUM(daily_bill) AS total_bill,
+            CASE 
+                WHEN SUM(CASE WHEN payment_status = 'paid' THEN 0 ELSE 1 END) = 0 
+                THEN 'paid' 
+                ELSE 'due' 
+            END AS payment_status
         FROM daily_water_consumption
         WHERE user_id = %s
         GROUP BY year, month
@@ -1069,8 +1079,16 @@ def view_fuel_bills():
     user_id = user['id']
 
     cursor.execute("""
-        SELECT MONTH(consumption_date) AS month, YEAR(consumption_date) AS year,
-               SUM(fuel_used_liters) AS total_liters, SUM(fuel_cost) AS total_bill
+        SELECT 
+            MONTH(consumption_date) AS month, 
+            YEAR(consumption_date) AS year,
+            SUM(fuel_used_liters) AS total_liters, 
+            SUM(fuel_cost) AS total_bill,
+            CASE 
+                WHEN SUM(CASE WHEN payment_status = 'paid' THEN 0 ELSE 1 END) = 0 
+                THEN 'paid' 
+                ELSE 'due' 
+            END AS payment_status
         FROM daily_fuel_consumption
         WHERE user_id = %s
         GROUP BY year, month
@@ -1123,7 +1141,12 @@ def view_gas_bills():
 
     cursor.execute("""
         SELECT MONTH(consumption_date) AS month, YEAR(consumption_date) AS year,
-               SUM(gas_used_cubic_meters) AS total_cubic_meters, SUM(gas_cost) AS total_bill
+               SUM(gas_used_cubic_meters) AS total_cubic_meters, SUM(gas_cost) AS total_bill,
+            CASE 
+                WHEN SUM(CASE WHEN payment_status = 'paid' THEN 0 ELSE 1 END) = 0 
+                THEN 'paid' 
+                ELSE 'due' 
+            END AS payment_status
         FROM daily_gas_consumption
         WHERE user_id = %s
         GROUP BY year, month

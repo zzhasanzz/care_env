@@ -47,10 +47,14 @@ th {
 
 /* Special Button (e.g., Due Bills) */
 .btn.due {
-    background-color: #c0392b; /* soft red, matching logout */
+    background-color: #ba7971; /* soft red, matching logout */
+}
+
+.btn.paid {
+    background-color: #605554b8; /* soft red, matching logout */
 }
 
 .btn.due:hover {
-    background-color: #a93226;
+    background-color: #be584fcd;
 }
 
