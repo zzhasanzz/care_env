@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,18 +16,21 @@
             align-items: flex-start;
             min-height: 100vh;
         }
+
         .card {
             background: #ffffff;
             border-radius: 10px;
             padding: 30px;
             max-width: 600px;
             width: 100%;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
         }
+
         .profile-header {
             text-align: center;
             margin-bottom: 30px;
         }
+
         .profile-image {
             width: 100px;
             height: 100px;
@@ -34,38 +38,62 @@
             border-radius: 50%;
             margin: 0 auto 15px;
         }
+
         h1 {
             font-size: 24px;
             color: #4f7c4f;
             margin: 10px 0 5px;
         }
+
         p {
             color: #666;
             margin: 5px 0;
             font-size: 14px;
         }
+
         .section {
             margin-top: 20px;
         }
+
         .section h2 {
             font-size: 18px;
             color: #4f7c4f;
             margin-bottom: 10px;
         }
+
         .section ul {
             list-style: none;
             padding: 0;
         }
+
         .section ul li {
             margin-bottom: 6px;
             font-size: 14px;
             color: #333;
+        }
+
+        .sidebar-btn {
+            display: block;
+            background-color: #6a8f6a;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar-btn:hover {
+            background-color: #4a6d4a;
         }
     </style>
 </head>
 
 <body>
     <div class="card">
+
         <div class="profile-header">
             <div class="profile-image"></div> <!-- Placeholder for image -->
             <h1>{{ user_info['profile']['name'] }}</h1>
@@ -117,6 +145,9 @@
             <p>No cars added.</p>
             {% endif %}
         </div>
+        <a href="{{ url_for('dashboard') }}" class="sidebar-btn"
+        style="margin-bottom: 20px; text-decoration: none;">Back to Dashboard</a>
     </div>
 </body>
+
 </html>

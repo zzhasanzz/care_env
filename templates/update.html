@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,41 +16,46 @@
             min-height: 100vh;
             align-items: flex-start;
         }
-    
+
         .card {
             background: #ffffff;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 1000px;
         }
-    
-        h1, h2, h3 {
+
+        h1,
+        h2,
+        h3 {
             text-align: center;
-            color: #4f7c4f; /* muted green title */
+            color: #4f7c4f;
+            /* muted green title */
             margin-bottom: 20px;
         }
-    
+
         p {
             text-align: center;
             color: #666;
             margin-bottom: 30px;
         }
-    
+
         form {
             display: flex;
             flex-direction: column;
         }
-    
+
         label {
             font-weight: bold;
             color: #4f7c4f;
             margin-bottom: 6px;
             display: block;
         }
-    
-        input, textarea, select {
+
+        input,
+        textarea,
+        select {
             width: 100%;
             padding: 10px;
             margin-bottom: 20px;
@@ -57,9 +63,10 @@
             border-radius: 6px;
             font-size: 14px;
         }
-    
+
         button {
-            background-color: #6a8f6a; /* button muted green */
+            background-color: #6a8f6a;
+            /* button muted green */
             color: white;
             padding: 12px;
             font-size: 16px;
@@ -69,29 +76,31 @@
             transition: background-color 0.3s;
             margin-top: 10px;
         }
-    
+
         button:hover {
             background-color: #4a6d4a;
         }
-    
+
         table {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
         }
-    
-        th, td {
+
+        th,
+        td {
             border: 1px solid #ddd;
             padding: 10px;
             text-align: center;
             font-size: 14px;
         }
-    
+
         th {
-            background-color: #e2eee2; /* soft sidebar green */
+            background-color: #e2eee2;
+            /* soft sidebar green */
             color: #4f7c4f;
         }
-    
+
         #car_list {
             list-style: none;
             padding: 0;
@@ -100,21 +109,21 @@
             border-radius: 6px;
             margin-top: 5px;
         }
-    
+
         #car_list li {
             padding: 10px;
             cursor: pointer;
             border-bottom: 1px solid #eee;
         }
-    
+
         #car_list li:hover {
             background-color: #e2eee2;
         }
-    
+
         .form-group {
             margin-bottom: 20px;
         }
-    
+
         a {
             display: block;
             margin-top: 30px;
@@ -123,139 +132,185 @@
             text-decoration: none;
             font-weight: bold;
         }
-    
+
         a:hover {
             text-decoration: underline;
         }
-    </style>    
+
+        /* fix input sizes inside the vehicle table */
+        #vehicle_table input {
+            width: 100px;
+            /* or slightly bigger if you want */
+            padding: 5px;
+            font-size: 13px;
+        }
+
+        #vehicle_table input[type="text"],
+        #vehicle_table input[type="number"],
+        #vehicle_table input[type="date"] {
+            width: 120px;
+            /* text/number/date input inside table will have 120px width */
+        }
+
+        #vehicle_table td {
+            vertical-align: middle;
+        }
+
+        #vehicle_table button {
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        .sidebar-btn {
+            display: block;
+            background-color: #6a8f6a;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar-btn:hover {
+            background-color: #4a6d4a;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Welcome, {{ user['name'] }}!</h1>
-    <p>Your email: {{ user['email'] }}</p>
+    <div class="card">
+        <h1>Welcome, {{ user['name'] }}!</h1>
+        <p>Your email: {{ user['email'] }}</p>
+        <a href="{{ url_for('dashboard') }}" class="sidebar-btn"
+            style="margin-bottom: 20px; text-decoration: none;">Back to Dashboard</a>
 
-    <h2>Update Your Information</h2>
 
-    <form action="{{ url_for('update_user') }}" method="POST">
-        <!-- Basic Info -->
-        <div class="form-group">
-            <label>Phone Number:</label>
-            <input type="text" name="phone" placeholder="Enter your phone number">
-        </div>
+        <h2>Update Your Information</h2>
 
-        <div class="form-group">
-            <label>Address:</label>
-            <textarea name="address" placeholder="Enter your address"></textarea>
-        </div>
+        <form action="{{ url_for('update_user') }}" method="POST">
+            <!-- Basic Info -->
+            <div class="form-group">
+                <label>Phone Number:</label>
+                <input type="text" name="phone" placeholder="Enter your phone number">
+            </div>
 
-        <div class="form-group">
-            <label>Division:</label>
-            <select name="division" id="division" onchange="loadProviders()">
-                <option value="" disabled selected>Select your division</option>
-                <option value="Dhaka">Dhaka</option>
-                <option value="Chattogram">Chattogram</option>
-                <option value="Khulna">Khulna</option>
-                <option value="Rajshahi">Rajshahi</option>
-                <option value="Barishal">Barishal</option>
-                <option value="Sylhet">Sylhet</option>
-                <option value="Rangpur">Rangpur</option>
-                <option value="Mymensingh">Mymensingh</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label>Address:</label>
+                <textarea name="address" placeholder="Enter your address"></textarea>
+            </div>
 
-        <div class="form-group">
-            <label>Electricity Provider:</label>
-            <select id="electricity_provider" name="electricity_provider">
-                <option value="" disabled selected>Select electricity provider</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label>Division:</label>
+                <select name="division" id="division" onchange="loadProviders()">
+                    <option value="" disabled selected>Select your division</option>
+                    <option value="Dhaka">Dhaka</option>
+                    <option value="Chattogram">Chattogram</option>
+                    <option value="Khulna">Khulna</option>
+                    <option value="Rajshahi">Rajshahi</option>
+                    <option value="Barishal">Barishal</option>
+                    <option value="Sylhet">Sylhet</option>
+                    <option value="Rangpur">Rangpur</option>
+                    <option value="Mymensingh">Mymensingh</option>
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label>Water Provider:</label>
-            <select id="water_provider" name="water_provider">
-                <option value="" disabled selected>Select water provider</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label>Electricity Provider:</label>
+                <select id="electricity_provider" name="electricity_provider">
+                    <option value="" disabled selected>Select electricity provider</option>
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label>Gas Provider:</label>
-            <select id="gas_provider" name="gas_provider">
-                <option value="" disabled selected>Select gas provider</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label>Water Provider:</label>
+                <select id="water_provider" name="water_provider">
+                    <option value="" disabled selected>Select water provider</option>
+                </select>
+            </div>
 
-        <div class="form-group">
-            <label>Gas Type:</label>
-            <select id="gas_type" name="gas_type">
-                <option value="" disabled selected>Select gas type</option>
-                <option value="metered">Metered</option>
-                <option value="non-metered">Non-metered</option>
-            </select>
-        </div>
+            <div class="form-group">
+                <label>Gas Provider:</label>
+                <select id="gas_provider" name="gas_provider">
+                    <option value="" disabled selected>Select gas provider</option>
+                </select>
+            </div>
 
-        <!-- Vehicles Section -->
-        <h2>Your Vehicles</h2>
+            <div class="form-group">
+                <label>Gas Type:</label>
+                <select id="gas_type" name="gas_type">
+                    <option value="" disabled selected>Select gas type</option>
+                    <option value="metered">Metered</option>
+                    <option value="non-metered">Non-metered</option>
+                </select>
+            </div>
 
-        <div class="form-group">
-            <input type="text" id="car_search" oninput="searchCars()" placeholder="Search car models">
-            <ul id="car_list"></ul>
-        </div>
+            <!-- Vehicles Section -->
+            <h2>Your Vehicles</h2>
 
-        <button type="button" onclick="addCarToTable('', 'New Vehicle')">Add New Vehicle</button>
+            <div class="form-group">
+                <input type="text" id="car_search" oninput="searchCars()" placeholder="Search car models">
+                <ul id="car_list"></ul>
+            </div>
 
-        <table id="vehicle_table">
-            <thead>
-                <tr>
-                    <th>Model Name</th>
-                    <th>Purchase Date</th>
-                    <th>Custom Daily KM</th>
-                    <th>License Plate</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Rows will be added dynamically -->
-            </tbody>
-        </table>
+            <button type="button" onclick="addCarToTable('', 'New Vehicle')">Add New Vehicle</button>
 
-        <input type="hidden" name="deleted_vehicle_ids" id="deleted_vehicle_ids">
+            <table id="vehicle_table">
+                <thead>
+                    <tr>
+                        <th>Model Name</th>
+                        <th>Purchase Date</th>
+                        <th>Custom Daily KM</th>
+                        <th>License Plate</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Rows will be added dynamically -->
+                </tbody>
+            </table>
 
-        <!-- Housing Information -->
-        <h2>Housing Information</h2>
-        <div class="form-group">
-            <label>House Size (sqft):</label>
-            <input type="number" name="house_size_sqft" value="{{ housing.house_size_sqft }}"
-                placeholder="Enter house size in sqft" required>
-        </div>
+            <input type="hidden" name="deleted_vehicle_ids" id="deleted_vehicle_ids">
 
-        <div class="form-group">
-            <label>Number of Members:</label>
-            <input type="number" name="num_members" value="{{ housing.num_members }}"
-                placeholder="Enter number of members" required>
-        </div>
+            <!-- Housing Information -->
+            <h2>Housing Information</h2>
+            <div class="form-group">
+                <label>House Size (sqft):</label>
+                <input type="number" name="house_size_sqft" value="{{ housing.house_size_sqft }}"
+                    placeholder="Enter house size in sqft" required>
+            </div>
 
-        <div class="form-group">
-            <label>Solar Panel Wattage:</label>
-            <input type="number" name="solar_panel_watt" value="{{ housing.solar_panel_watt }}"
-                placeholder="Enter solar panel wattage">
-        </div>
+            <div class="form-group">
+                <label>Number of Members:</label>
+                <input type="number" name="num_members" value="{{ housing.num_members }}"
+                    placeholder="Enter number of members" required>
+            </div>
 
-        <div class="form-group">
-            <label>Wind Source Wattage:</label>
-            <input type="number" name="wind_source_watt" value="{{ housing.wind_source_watt }}"
-                placeholder="Enter wind source wattage">
-        </div>
+            <div class="form-group">
+                <label>Solar Panel Wattage:</label>
+                <input type="number" name="solar_panel_watt" value="{{ housing.solar_panel_watt }}"
+                    placeholder="Enter solar panel wattage">
+            </div>
 
-        <div class="form-group">
-            <label>Other Renewable Source Wattage:</label>
-            <input type="number" name="other_renewable_source" value="{{ housing.other_renewable_source }}"
-                placeholder="Enter other renewable source wattage">
-        </div>
+            <div class="form-group">
+                <label>Wind Source Wattage:</label>
+                <input type="number" name="wind_source_watt" value="{{ housing.wind_source_watt }}"
+                    placeholder="Enter wind source wattage">
+            </div>
 
-        <button type="submit">Update Information</button>
-    </form>
+            <div class="form-group">
+                <label>Other Renewable Source Wattage:</label>
+                <input type="number" name="other_renewable_source" value="{{ housing.other_renewable_source }}"
+                    placeholder="Enter other renewable source wattage">
+            </div>
 
-    <p><a href="{{ url_for('logout') }}">Logout</a></p>
+            <button type="submit">Update Information</button>
+        </form>
+
+        <p><a href="{{ url_for('logout') }}">Logout</a></p>
+    </div>
 
     <script>
         window.onload = function () {
@@ -286,12 +341,12 @@
             function searchCars() {
                 const query = document.getElementById('car_search').value;
                 const carList = document.getElementById('car_list');
-                
+
                 if (query.length < 2) {
                     carList.style.display = 'none';
                     return;
                 }
-                
+
                 fetch(`/search_cars?q=${encodeURIComponent(query)}`)
                     .then(response => {
                         if (!response.ok) throw new Error('Network response was not ok');
@@ -299,7 +354,7 @@
                     })
                     .then(data => {
                         carList.innerHTML = '';
-                        
+
                         if (data.cars && data.cars.length > 0) {
                             data.cars.forEach(car => {
                                 const li = document.createElement('li');
@@ -343,7 +398,7 @@
                 document.getElementById('car_list').innerHTML = '';
             }
 
-            window.removeVehicleRow = function(btn, userVehicleId) {
+            window.removeVehicleRow = function (btn, userVehicleId) {
                 if (userVehicleId && userVehicleId !== 'undefined') {
                     deletedIds.add(userVehicleId);
                     document.getElementById('deleted_vehicle_ids').value = Array.from(deletedIds).join(',');
@@ -353,31 +408,33 @@
 
             // Initialize existing vehicles
             {% if user_vehicles %}
-                const userVehicles = {{ user_vehicles|tojson }};
-                userVehicles.forEach(v => {
-                    addCarToTable(
-                        v.vehicle_id,
-                        v.model_name,
-                        v.purchase_date ? v.purchase_date.split('T')[0] : '',
-                        v.custom_daily_km || '',
-                        v.license_plate || '',
-                        v.user_vehicle_id
-                    );
-                });
-            {% endif %}
+            const userVehicles = {{ user_vehicles| tojson
+        }};
+        userVehicles.forEach(v => {
+            addCarToTable(
+                v.vehicle_id,
+                v.model_name,
+                v.purchase_date ? v.purchase_date.split('T')[0] : '',
+                v.custom_daily_km || '',
+                v.license_plate || '',
+                v.user_vehicle_id
+            );
+        });
+        {% endif %}
 
-            // Close car list when clicking outside
-            document.addEventListener('click', function (e) {
-                if (!e.target.closest('#car_search') && !e.target.closest('#car_list')) {
-                    document.getElementById('car_list').style.display = 'none';
-                }
-            });
+        // Close car list when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('#car_search') && !e.target.closest('#car_list')) {
+                document.getElementById('car_list').style.display = 'none';
+            }
+        });
 
-            // Attach to global for access
-            window.loadProviders = loadProviders;
-            window.searchCars = searchCars;
-            window.addCarToTable = addCarToTable;
+        // Attach to global for access
+        window.loadProviders = loadProviders;
+        window.searchCars = searchCars;
+        window.addCarToTable = addCarToTable;
         };
     </script>
 </body>
+
 </html>
