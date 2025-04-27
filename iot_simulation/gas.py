@@ -1,34 +1,10 @@
 import MySQLdb
-import MySQLdb
 import numpy as np
 import os
 from datetime import date, timedelta
 from dotenv import load_dotenv
 import calendar
-from dateutil.relativedelta import relativedelta  
-
-
-load_dotenv()
-
-MYSQL_HOST = os.getenv('MYSQL_HOST')
-MYSQL_USER = os.getenv('MYSQL_USER')
-MYSQL_PASSWORD = os.getenv('MYSQL_PASSWORD')
-MYSQL_DATABASE = os.getenv('MYSQL_DATABASE', 'care_env')
-
-def get_db_connection():
-    conn = MySQLdb.connect(
-        host=MYSQL_HOST,
-        user=MYSQL_USER,
-        passwd=MYSQL_PASSWORD,
-        database=MYSQL_DATABASE
-    )
-    return conn
-
-# Constants
-import os
-from datetime import date, timedelta
-from dotenv import load_dotenv
-import calendar
+from dateutil.relativedelta import relativedelta
 
 load_dotenv()
 
@@ -52,14 +28,7 @@ NON_METERED_DOUBLE_BURNER_MONTHLY = 88  # Cubic meters
 SINGLE_BURNER_RATE = 750  # Tk/month
 DOUBLE_BURNER_RATE = 800  # Tk/month
 METERED_GAS_PRICE = 9.10  # Tk/cubic meter
-METERED_GAS_PRICE = 9.10  # Tk/cubic meter
 
-def simulate_metered_daily_gas_consumption(num_members):
-    activities = {
-        "cooking": lambda: np.random.normal(0.5, 0.1) * num_members,
-        "water_heating": lambda: np.random.normal(0.3, 0.05) * num_members,
-        "space_heating": lambda: np.random.uniform(1.0, 2.0)
-    }
 def simulate_metered_daily_gas_consumption(num_members):
     activities = {
         "cooking": lambda: np.random.normal(0.5, 0.1) * num_members,
@@ -88,27 +57,43 @@ def fetch_all_users_gas_info():
 def log_daily_gas_consumption(user_id, date_obj, gas_used, gas_cost, household_type, burner_type=None, num_members=None):
     conn = get_db_connection()
     cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT 1 FROM daily_gas_consumption 
-        WHERE user_id = %s AND consumption_date = %s
-    """, (user_id, date_obj))
-    
-    if cursor.fetchone():
+    try:
+        # Check if record already exists
+        cursor.execute("""
+            SELECT 1 FROM daily_gas_consumption 
+            WHERE user_id = %s AND consumption_date = %s
+        """, (user_id, date_obj))
+        
+        if cursor.fetchone():
+            cursor.close()
+            conn.close()
+            return False  # Already logged
+
+        # Call the stored procedure instead of manual INSERT
+        cursor.callproc('InsertGasConsumption', (
+            user_id,
+            date_obj,
+            gas_used,
+            gas_cost,
+            household_type,
+            burner_type,
+            num_members
+        ))
+        
+        # Always fetch all results after callproc to avoid sync errors
+        for _ in cursor.fetchall():
+            pass
+
+        conn.commit()
+        return True
+
+    except MySQLdb.Error as err:
+        print(f"❌ Error calling InsertGasConsumption: {err}")
+        conn.rollback()
+        return False
+    finally:
         cursor.close()
         conn.close()
-        return False  # Already logged
-    
-    cursor.execute("""
-        INSERT INTO daily_gas_consumption
-        (user_id, consumption_date, gas_used_cubic_meters, gas_cost, household_type, burner_type, num_members)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (user_id, date_obj, gas_used, gas_cost, household_type, burner_type, num_members))
-    
-    conn.commit()
-    cursor.close()
-    conn.close()
-    return True
 
 def simulate_and_log_all_users_gas():
     users = fetch_all_users_gas_info()
@@ -135,9 +120,7 @@ def simulate_and_log_all_users_gas():
                 log_daily_gas_consumption(user_id, single_date, daily_usage, daily_cost, "metered", num_members=num_members)
             
             elif household_type == "non_metered":
-                # Randomly select burner type with 90% double, 10% single
                 burner_type = np.random.choice(["double", "single"], p=[0.9, 0.1])
-                
                 days_in_month = calendar.monthrange(single_date.year, single_date.month)[1]
                 
                 if burner_type == "single":
@@ -154,7 +137,7 @@ def simulate_and_log_all_users_gas():
     
     print("Simulation completed for all users ✅")
 
-if __name__ == "__main__":
+if _name_ == "_main_":
     print("Starting gas consumption simulation...")
     simulate_and_log_all_users_gas()
     print("Gas consumption simulation fully completed.")
