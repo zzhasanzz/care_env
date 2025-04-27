@@ -6,6 +6,7 @@ from authlib.integrations.flask_client import OAuth
 from functools import wraps
 from dotenv import load_dotenv
 from iot_simulation.electricity import simulate_daily_consumption, fetch_user_data, calculate_bill, get_db_connection, calculate_and_log_consumption
+from iot_simulation.admin_model import get_admin_by_email
 import MySQLdb
 import requests
 import io
@@ -104,11 +105,19 @@ def authorize():
     token = google.authorize_access_token()
     user_info = google.get('userinfo').json()
     session['profile'] = user_info  # Store user info in session
-
+    
     # Extract user details
     google_id = user_info['id']
     display_name = user_info.get('name', '')
     email = user_info.get('email', '')
+    
+     # First check if the email belongs to an Admin
+    admin = get_admin_by_email(email)
+    if admin:
+        session['admin_id'] = admin['id']
+        session['user_type'] = 'admin'
+        session['display_name'] = admin['display_name']
+        return redirect(url_for('admin_dashboard')) 
 
     # Insert or update user in the database
     cursor = db.cursor(MySQLdb.cursors.DictCursor)
@@ -116,9 +125,11 @@ def authorize():
     existing_user = cursor.fetchone()
 
     if existing_user:
-        # User exists, redirect to dashboard
-        return redirect(url_for('dashboard'))   
-
+        session['user_type'] = 'user'
+        session['user_id'] = existing_user['id']
+        session['display_name'] = display_name
+        return redirect(url_for('dashboard'))
+  
     else:
         cursor.execute("""
             INSERT INTO user (google_id, display_name, email)
@@ -159,6 +170,13 @@ def search_cars():
 # def update():
 #     user = session['profile']
 #     return render_template('update.html', user=user)
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+    
+    return render_template('admin_dashboard.html', admin_name=session.get('display_name'))
 
 
 @app.route('/dashboard')
