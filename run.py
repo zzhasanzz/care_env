@@ -178,6 +178,21 @@ def admin_dashboard():
     
     return render_template('admin_dashboard.html', admin_name=session.get('display_name'))
 
+@app.route('/admin_profile')
+def admin_profile():
+    if 'user_type' not in session or session['user_type'] != 'admin':
+        return redirect(url_for('login'))
+
+    admin_id = session.get('admin_id')
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id, display_name, email FROM admin WHERE id = %s", (admin_id,))
+    admin = cursor.fetchone()
+
+    if not admin:
+        return redirect(url_for('logout'))
+
+    return render_template('admin_profile.html', admin=admin)
+
 
 @app.route('/dashboard')
 @login_required
