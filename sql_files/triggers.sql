@@ -89,3 +89,42 @@ BEGIN
 END;
 
 //
+
+--insert vehicles
+
+DELIMITER //
+
+CREATE TRIGGER set_nulls_in_vehicles
+BEFORE INSERT ON vehicles
+FOR EACH ROW
+BEGIN
+    IF NEW.model_name = '' THEN
+        SET NEW.model_name = NULL;
+    END IF;
+
+    IF NEW.vehicle_type = '' THEN
+        SET NEW.vehicle_type = NULL;
+    END IF;
+
+    IF NEW.fuel_type = '' THEN
+        SET NEW.fuel_type = NULL;
+    END IF;
+
+    IF NEW.urban_efficiency = '' THEN
+        SET NEW.urban_efficiency = NULL;
+    END IF;
+
+    IF NEW.highway_efficiency = '' THEN
+        SET NEW.highway_efficiency = NULL;
+    END IF;
+
+    IF NEW.daily_average_km = '' THEN
+        SET NEW.daily_average_km = NULL;
+    END IF;
+
+    IF NEW.description = '' THEN
+        SET NEW.description = NULL;
+    END IF;
+END //
+
+DELIMITER ;

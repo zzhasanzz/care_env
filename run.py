@@ -269,7 +269,7 @@ def add_utility_provider():
         db.commit()
         cursor.close()
 
-        return redirect(url_for('admin_dashboard'))  # after adding, redirect back to dashboard
+        return redirect(url_for('view_providers'))  # after adding, redirect back to dashboard
 
     return render_template('add_utility_provider.html')
 
@@ -336,6 +336,31 @@ def view_vehicles():
 
     return render_template('view_vehicles.html', vehicles=vehicles)
 
+@app.route('/admin/add_vehicle', methods=['GET', 'POST'])
+def add_vehicle():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    if request.method == 'POST':
+        model_name = request.form['model_name']
+        vehicle_type = request.form['vehicle_type']
+        fuel_type = request.form['fuel_type']
+        urban_efficiency = request.form['urban_efficiency']
+        highway_efficiency = request.form['highway_efficiency']
+        daily_average_km = request.form['daily_average_km']
+        description = request.form.get('description')
+
+        cursor = db.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("""
+            INSERT INTO vehicles 
+            (model_name, vehicle_type, fuel_type, urban_efficiency, highway_efficiency, daily_average_km, description)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (model_name, vehicle_type, fuel_type, urban_efficiency, highway_efficiency, daily_average_km, description))
+        db.commit()
+        cursor.close()
+
+        return redirect(url_for('view_vehicles', success='1'))
+    return render_template('add_vehicle.html')
 
 
 @app.route('/dashboard')
