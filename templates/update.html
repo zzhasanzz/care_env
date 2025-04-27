@@ -194,26 +194,24 @@
             <!-- Basic Info -->
             <div class="form-group">
                 <label>Phone Number:</label>
-                <input type="text" name="phone" placeholder="Enter your phone number">
+                <input type="text" name="phone" placeholder="Enter your phone number" value="{{ user.phone or '' }}">
             </div>
 
             <div class="form-group">
                 <label>Address:</label>
-                <textarea name="address" placeholder="Enter your address"></textarea>
+                <textarea name="address" placeholder="Enter your address">{{ user.address or '' }}</textarea>
             </div>
 
             <div class="form-group">
                 <label>Division:</label>
                 <select name="division" id="division" onchange="loadProviders()">
-                    <option value="" disabled selected>Select your division</option>
-                    <option value="Dhaka">Dhaka</option>
-                    <option value="Chattogram">Chattogram</option>
-                    <option value="Khulna">Khulna</option>
-                    <option value="Rajshahi">Rajshahi</option>
-                    <option value="Barishal">Barishal</option>
-                    <option value="Sylhet">Sylhet</option>
-                    <option value="Rangpur">Rangpur</option>
-                    <option value="Mymensingh">Mymensingh</option>
+                    <option value="" disabled {% if not user.division %}selected{% endif %}>Select your division
+                    </option>
+                    {% for division in ['Dhaka', 'Chattogram', 'Khulna', 'Rajshahi', 'Barishal', 'Sylhet', 'Rangpur',
+                    'Mymensingh'] %}
+                    <option value="{{ division }}" {% if user.division==division %}selected{% endif %}>{{ division }}
+                    </option>
+                    {% endfor %}
                 </select>
             </div>
 
@@ -241,9 +239,10 @@
             <div class="form-group">
                 <label>Gas Type:</label>
                 <select id="gas_type" name="gas_type">
-                    <option value="" disabled selected>Select gas type</option>
-                    <option value="metered">Metered</option>
-                    <option value="non-metered">Non-metered</option>
+                    <option value="" disabled {% if not user.gas_type %}selected{% endif %}>Select gas type</option>
+                    <option value="metered" {% if user.gas_type=='metered' %}selected{% endif %}>Metered</option>
+                    <option value="non-metered" {% if user.gas_type=='non-metered' %}selected{% endif %}>Non-metered
+                    </option>
                 </select>
             </div>
 
@@ -306,6 +305,42 @@
                     placeholder="Enter other renewable source wattage">
             </div>
 
+            <!-- Wallet Information -->
+            <h2>Wallet Setup</h2>
+            <div class="form-group">
+                <label>Wallet Username:</label>
+                <input type="text" name="wallet_username" placeholder="Choose a wallet username"
+                    value="{{ wallet.username if wallet else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Phone Number (for Wallet):</label>
+                <input type="tel" name="wallet_phone" placeholder="Enter phone number for wallet"
+                    value="{{ wallet.phone if wallet else '' }}" required>
+            </div>
+
+            <div class="form-group">
+                <label>Set Wallet Password:</label>
+                <input type="password" name="wallet_password" placeholder="Enter password" required>
+            </div>
+
+            <div class="form-group">
+                <label>Confirm Password:</label>
+                <input type="password" name="wallet_confirm_password" placeholder="Confirm password" required>
+                <p id="password_error" style="color: red; display: none;">Passwords do not match!</p>
+            </div>
+
+            <!-- Display current wallet balance if exists -->
+            {% if wallet %}
+            <div class="form-group">
+                <label>Current Wallet Balance:</label>
+                <input type="text" value="Tk {{ '%.2f'|format(wallet.balance) }}" readonly>
+            </div>
+            {% endif %}
+            {% if wallet %}
+            <input type="hidden" name="wallet_exists" value="true">
+            {% endif %}
+
             <button type="submit">Update Information</button>
         </form>
 
@@ -313,6 +348,37 @@
     </div>
 
     <script>
+
+        function validatePassword(password) {
+            return password.length >= 8 && /\d/.test(password) && /[A-Z]/.test(password);
+        }
+
+        document.querySelector('form').addEventListener('submit', function (e) {
+            const pass1 = document.querySelector('input[name="wallet_password"]');
+            const pass2 = document.querySelector('input[name="wallet_confirm_password"]');
+            const error = document.getElementById('password_error');
+
+            // Only validate if password fields exist and are being submitted
+            if (pass1 && pass2 && pass1.value && pass2.value) {
+                if (pass1.value !== pass2.value) {
+                    error.textContent = "Passwords do not match!";
+                    error.style.display = 'block';
+                    e.preventDefault();
+                    return;
+                }
+
+                if (!validatePassword(pass1.value)) {
+                    error.textContent = "Password must be 8+ chars with a number and uppercase letter";
+                    error.style.display = 'block';
+                    e.preventDefault();
+                    return;
+                }
+            }
+
+            // If we get here, allow form submission
+            this.querySelector('button[type="submit"]').disabled = true;
+        });
+
         window.onload = function () {
             let vehicleCounter = 0;
             const deletedIds = new Set();
@@ -394,6 +460,8 @@
                     <td><button type="button" onclick="window.removeVehicleRow(this, '${userVehicleId}')">Delete</button></td>
                 `;
 
+
+
                 tbody.appendChild(row);
                 document.getElementById('car_list').innerHTML = '';
             }
@@ -408,13 +476,13 @@
 
             // Initialize existing vehicles
             {% if user_vehicles %}
-            const userVehicles = {{ user_vehicles| tojson
-        }};
+            const userVehicles = {{ user_vehicles| tojson}};
+
         userVehicles.forEach(v => {
             addCarToTable(
                 v.vehicle_id,
                 v.model_name,
-                v.purchase_date ? v.purchase_date.split('T')[0] : '',
+                v.purchase_date || '',
                 v.custom_daily_km || '',
                 v.license_plate || '',
                 v.user_vehicle_id

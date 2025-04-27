@@ -137,7 +137,7 @@ def simulate_and_log_all_users_gas():
     
     print("Simulation completed for all users ✅")
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     print("Starting gas consumption simulation...")
     simulate_and_log_all_users_gas()
     print("Gas consumption simulation fully completed.")

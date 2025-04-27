@@ -11,7 +11,8 @@ import MySQLdb
 import requests
 import io
 import base64
-import flash
+from flask import flash
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 
@@ -138,6 +139,7 @@ def authorize():
         """, (google_id, display_name, email))
         db.commit()
         return redirect(url_for('update_user'))
+
 
 @app.route('/get_providers/<division>')
 def get_providers(division):
@@ -562,7 +564,7 @@ def update_user():
     if not user:
         return redirect(url_for('logout'))
 
-    # Get existing housing data if it exists
+    # Get housing info
     cursor.execute("""
         SELECT id, house_size_sqft, num_members, 
                solar_panel_watt, wind_source_watt, other_renewable_source
@@ -571,9 +573,18 @@ def update_user():
     """, (user['id'],))
     housing = cursor.fetchone()
 
+    # Fetch wallet info
+    cursor.execute("""
+        SELECT uw.balance, uwa.username, uwa.phone
+        FROM user_wallet uw
+        LEFT JOIN user_wallet_auth uwa ON uw.user_id = uwa.user_id
+        WHERE uw.user_id = %s
+    """, (user['id'],))
+    wallet = cursor.fetchone()
+
     if request.method == 'POST':
         try:
-            # Update basic user details
+            # Basic User Updates
             phone = request.form.get('phone', '')
             address = request.form.get('address', '')
             division = request.form.get('division', '')
@@ -594,11 +605,11 @@ def update_user():
             # Handle deleted vehicles
             deleted_ids = request.form.get('deleted_vehicle_ids', '')
             if deleted_ids:
-                deleted_ids_list = [vid for vid in deleted_ids.split(',') if vid]
-                for vid in deleted_ids_list:
-                    cursor.execute("DELETE FROM user_vehicles WHERE id = %s", (vid,))
+                for vid in deleted_ids.split(','):
+                    if vid.strip():
+                        cursor.execute("DELETE FROM user_vehicles WHERE id = %s", (vid.strip(),))
 
-            # Handle vehicles (existing and new)
+            # Handle vehicle updates/inserts
             counter = 0
             while True:
                 model_name = request.form.get(f'vehicle_model_name_{counter}')
@@ -611,13 +622,13 @@ def update_user():
                 custom_daily_km = request.form.get(f'custom_daily_km_{counter}') or None
                 license_plate = request.form.get(f'license_plate_{counter}')
 
-                if user_vehicle_id:  # Update existing
+                if user_vehicle_id:
                     cursor.execute("""
                         UPDATE user_vehicles
                         SET purchase_date = %s, custom_daily_km = %s, license_plate = %s
                         WHERE id = %s
                     """, (purchase_date, custom_daily_km, license_plate, user_vehicle_id))
-                else:  # Insert new
+                else:
                     cursor.execute("""
                         INSERT INTO user_vehicles 
                         (user_id, vehicle_id, purchase_date, custom_daily_km, license_plate)
@@ -626,14 +637,14 @@ def update_user():
 
                 counter += 1
 
-            # Update housing details
+            # Update or insert housing info
             house_size_sqft = request.form.get('house_size_sqft', 0, type=int) or 0
             num_members = request.form.get('num_members', 0, type=int) or 0
             solar_panel_watt = request.form.get('solar_panel_watt', 0, type=int) or 0
             wind_source_watt = request.form.get('wind_source_watt', 0, type=int) or 0
             other_renewable_source = request.form.get('other_renewable_source', 0, type=int) or 0
 
-            if housing:  # Update existing housing record
+            if housing:
                 cursor.execute("""
                     UPDATE user_housing
                     SET house_size_sqft = %s, num_members = %s,
@@ -642,27 +653,82 @@ def update_user():
                     WHERE id = %s
                 """, (house_size_sqft, num_members, solar_panel_watt,
                      wind_source_watt, other_renewable_source, housing['id']))
-            else:  # Create new housing record
+            else:
                 cursor.execute("""
                     INSERT INTO user_housing 
                     (user_id, house_size_sqft, num_members,
-                     solar_panel_watt, wind_source_watt,
-                     other_renewable_source)
+                     solar_panel_watt, wind_source_watt, other_renewable_source)
                     VALUES (%s, %s, %s, %s, %s, %s)
                 """, (user['id'], house_size_sqft, num_members,
                      solar_panel_watt, wind_source_watt, other_renewable_source))
 
             db.commit()
-            #flash("Your profile has been updated successfully!", "success")
-            return redirect(url_for('dashboard'))
+            print("✅ User, Vehicle, Housing Updates Committed")
 
         except Exception as e:
             db.rollback()
-            #flash(f"An error occurred: {str(e)}", "error")
+            print(f"❌ General Update Failed: {str(e)}")
             return redirect(url_for('dashboard'))
 
-    # For GET requests, render the form with existing data
-    # Get user vehicles for display
+        # ---------------- Wallet Section After Commit ----------------
+        wallet_username = request.form.get('wallet_username', '').strip()
+        wallet_phone = request.form.get('wallet_phone', '').strip()
+        wallet_password = request.form.get('wallet_password', '').strip()
+        wallet_confirm = request.form.get('wallet_confirm_password', '').strip()
+
+        if wallet_username and wallet_phone:
+            try:
+                wallet_cursor = db.cursor()
+                wallet_cursor.execute("SELECT 1 FROM user_wallet_auth WHERE user_id = %s", (user['id'],))
+                wallet_exists = wallet_cursor.fetchone()
+
+                if wallet_password:
+                    if wallet_password != wallet_confirm:
+                        flash("Passwords do not match!", "error")
+                        return redirect(url_for('update_user'))
+                    
+                    hashed_password = generate_password_hash(wallet_password)
+
+                    if wallet_exists:
+                        wallet_cursor.execute("""
+                            UPDATE user_wallet_auth 
+                            SET username = %s, phone = %s, password_hash = %s
+                            WHERE user_id = %s
+                        """, (wallet_username, wallet_phone, hashed_password, user['id']))
+                    else:
+                        wallet_cursor.execute("""
+                            INSERT INTO user_wallet_auth (user_id, username, phone, password_hash)
+                            VALUES (%s, %s, %s, %s)
+                        """, (user['id'], wallet_username, wallet_phone, hashed_password))
+
+                else:
+                    if wallet_exists:
+                        wallet_cursor.execute("""
+                            UPDATE user_wallet_auth 
+                            SET username = %s, phone = %s
+                            WHERE user_id = %s
+                        """, (wallet_username, wallet_phone, user['id']))
+                    else:
+                        flash("Password required for new wallet setup!", "error")
+                        return redirect(url_for('update_user'))
+
+                # Ensure balance exists
+                wallet_cursor.execute("""
+                    INSERT IGNORE INTO user_wallet (user_id, balance)
+                    VALUES (%s, 15000)
+                """, (user['id'],))
+                db.commit()
+                print("✅ Wallet update committed successfully")
+
+            except Exception as wallet_error:
+                db.rollback()
+                print(f"❌ Wallet Update Failed: {wallet_error}")
+                flash("Failed to update wallet!", "error")
+                return redirect(url_for('update_user'))
+
+        return redirect(url_for('dashboard'))
+
+    # ----------------- GET Method -----------------
     cursor.execute("""
         SELECT uv.id as user_vehicle_id, uv.*, v.model_name 
         FROM user_vehicles uv
@@ -671,7 +737,10 @@ def update_user():
     """, (user['id'],))
     user_vehicles = cursor.fetchall()
 
-    
+    for v in user_vehicles:
+        if v['purchase_date']:
+            v['purchase_date'] = v['purchase_date'].strftime('%Y-%m-%d')
+
 
     housing_data = housing or {
         'house_size_sqft': 0,
@@ -681,11 +750,11 @@ def update_user():
         'other_renewable_source': 0
     }
 
-
     return render_template('update.html',
-                         user=user,
-                         user_vehicles=user_vehicles,
-                         housing=housing_data)
+                           user=user,
+                           user_vehicles=user_vehicles,
+                           housing=housing_data,
+                           wallet=wallet)
 
 
 
