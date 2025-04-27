@@ -150,26 +150,22 @@ def get_season(date_obj):
         return "winter"
 
 def get_simulation_date_ranges():
-    """
-    Generate date ranges for the last 6 full months + current month till today.
-    """
     today = datetime.date.today()
     current_month_start = today.replace(day=1)
-
     date_ranges = []
 
-    # Add last 6 full months
+    # Last 6 full months
     for i in range(6, 0, -1):
         month_start = (current_month_start - datetime.timedelta(days=1)).replace(day=1)
         month_end = current_month_start - datetime.timedelta(days=1)
-        date_ranges.append((f"{month_start.strftime('%B_%Y')}", month_start, month_end))
-        current_month_start = month_start  # Move one month back
+        date_ranges.append((month_start, month_end))
+        current_month_start = month_start
 
-    # Now add current month up to today
-    current_month_real_start = today.replace(day=1)
-    date_ranges.append(("current_month", current_month_real_start, today))
+    # Add current month till today
+    date_ranges.append((today.replace(day=1), today))
 
     return date_ranges
+
 
 def simulate_renewable_generation(solar_capacity, wind_capacity, season="summer"):
     solar_factors = {"summer": np.random.normal(5, 1), "transition": np.random.normal(4, 1), "winter": np.random.normal(3, 1)}
@@ -226,26 +222,16 @@ def fetch_all_users():
     conn.close()
     return users
 
-def log_daily_consumption(user_id, utility_provider_id, date, units_consumed, base_rate, multipliers, tiers):
+def log_daily_consumption(user_id, utility_provider_id, date, units_consumed):
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("""
-        SELECT 1 FROM daily_electricity_consumption
-        WHERE user_id = %s AND consumption_date = %s
-    """, (user_id, date))
-    
-    if cursor.fetchone():
-        cursor.close()
-        conn.close()
-        return
 
-    daily_bill = calculate_bill(units_consumed, base_rate, multipliers, tiers)
-    
-    cursor.execute("""
-        INSERT INTO daily_electricity_consumption
-        (user_id, utility_provider_id, consumption_date, units_consumed, daily_bill)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (user_id, utility_provider_id, date, units_consumed, daily_bill))
+    try:
+        cursor.callproc('InsertElectricityConsumption', (user_id, utility_provider_id, date, units_consumed))
+        print(f"✅ Inserted or Skipped: {user_id} on {date} - {units_consumed} kWh")
+    except Exception as e:
+        print(f"❌ Error inserting for {user_id} on {date}: {str(e)}")
+
     conn.commit()
     cursor.close()
     conn.close()
@@ -272,8 +258,6 @@ def calculate_bill(total_units, base_rate, multipliers, tiers, service_charge=10
 def calculate_and_log_consumption():
     all_users = fetch_all_users()
     date_ranges = get_simulation_date_ranges()
-    multipliers = [1.00, 1.35, 1.41, 1.48, 2.63]
-    tiers = [75, 125, 100, 200, float('inf')]
 
     for user in all_users:
         user_id = user['user_id']
@@ -282,14 +266,12 @@ def calculate_and_log_consumption():
         num_members = user['num_members'] or 4
         solar_capacity = user['solar_panel_watt'] or 0
         wind_capacity = user['wind_source_watt'] or 0
-        base_rate = fetch_user_data(user_id)['base_rate']
 
-        for period_name, start_date, end_date in date_ranges:
-            print(f"Processing {user_id} for {period_name} ({start_date} to {end_date})")
+        for start_date, end_date in date_ranges:
             current_date = start_date
             while current_date <= end_date:
                 units = simulate_daily_consumption(house_size, num_members, current_date, solar_capacity, wind_capacity)
-                log_daily_consumption(user_id, utility_provider_id, current_date, units, base_rate, multipliers, tiers)
+                log_daily_consumption(user_id, utility_provider_id, current_date, units)
                 current_date += datetime.timedelta(days=1)
 
 def main(user_id):
