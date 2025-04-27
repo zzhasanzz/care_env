@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,54 +10,68 @@
             font-family: Arial, sans-serif;
             margin: 0;
             background-color: #f7f7f7;
+            margin: 0;
+            background-color: #f7f7f7;
         }
-
         .container {
             display: flex;
             min-height: 100vh;
+            overflow: hidden;
         }
-
         .sidebar {
             width: 260px;
-            background-color: #e6f2e6;
+            background-color: #e2eee2;
             padding: 20px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
         }
-
-        .sidebar h2 {
-            color: #68a469;
-            font-size: 22px;
-            margin-bottom: 10px;
+        .sidebar-section {
+            margin-bottom: 30px;
         }
-
-        .sidebar ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar ul li {
-            margin-bottom: 10px;
-            font-size: 14px;
-            color: #333;
-        }
-
-        .sidebar .btn {
-            background-color: #749275;
-            color: white;
-            padding: 8px 15px;
-            text-decoration: none;
-            border-radius: 5px;
+        .sidebar-btn {
             display: block;
-            margin: 15px 0;
+            background-color: #6a8f6a;
+            color: white;
             text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
         }
-
-        .sidebar .btn:hover {
-            background-color: #324932;
+        .sidebar-btn:hover {
+            background-color: #4a6d4a;
+        }
+        .logout {
+            text-align: center;
+            color: #c0392b;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 10px 0;
+            font-size: 14px;
+        }
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 30px;
+        }
+        .section {
+            margin-bottom: 30px;
+        }
+        .section h2 {
+            color: #68a469;
+            margin-bottom: 15px;
+        }
+        canvas {
+            max-width: 100%;
+            height: auto;
         }
 
         .sidebar a.logout {
@@ -91,136 +104,96 @@
 </head>
 
 <body>
-<div class="container">
-    <!-- Sidebar Start -->
-    <div class="sidebar">
-        <div>
-            <h2>Profile</h2>
-            <ul>
-                <li><strong>Name:</strong> {{ user_info['profile']['name'] }}</li>
-                <li><strong>Email:</strong> {{ user_info['profile']['email'] }}</li>
-                <li><strong>Phone:</strong> {{ user_info['details']['phone'] }}</li>
-                <li><strong>Address:</strong> {{ user_info['details']['address'] }}</li>
-                <li><strong>Division:</strong> {{ user_info['details']['division'] }}</li>
-            </ul>
-
-            <h2>Providers</h2>
-            <ul>
-                <li><strong>Electricity:</strong> {{ user_info['details']['electricity_provider'] }}</li>
-                <li><strong>Water:</strong> {{ user_info['details']['water_provider'] }}</li>
-                <li><strong>Gas:</strong> {{ user_info['details']['gas_provider'] }}</li>
-                <li><strong>Gas Type:</strong> {{ user_info['details']['gas_type'] }}</li>
-            </ul>
-
-            <h2>Housing</h2>
-            {% if user_info['housing'] %}
-            <ul>
-                <li><strong>House Size:</strong> {{ user_info['housing']['house_size_sqft'] }} sqft</li>
-                <li><strong>Members:</strong> {{ user_info['housing']['num_members'] }}</li>
-                <li><strong>Solar Watt:</strong> {{ user_info['housing']['solar_panel_watt'] }} W</li>
-                <li><strong>Wind Watt:</strong> {{ user_info['housing']['wind_source_watt'] }} W</li>
-            </ul>
-            {% else %}
-            <p>No housing info</p>
-            {% endif %}
-
-            <h2>Cars</h2>
-            {% if user_info['cars'] %}
-            <ul>
-                {% for car in user_info['cars'] %}
-                <li>{{ car }}</li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p>No cars added</p>
-            {% endif %}
-
-            <a href="{{ url_for('update_user') }}" class="btn">Update Info</a>
+    <div class="container">
+        <!-- Sidebar Start -->
+        <div class="sidebar">
+            <a href="{{ url_for('profile') }}" class="sidebar-btn">Profile</a>
+            <a href="{{ url_for('update_user') }}" class="sidebar-btn">Update Info</a>
+            <a href="{{ url_for('logout') }}" class="logout">Logout</a>
         </div>
+        <!-- Sidebar End -->
 
-        <a href="{{ url_for('logout') }}" class="logout">Logout</a>
-    </div>
-    <!-- Sidebar End -->
+        <!-- Main Content Start -->
+        <div class="main-content">
+            <div class="section">
+                <h2>Daily Electricity Consumption (Last 15 Days)</h2>
+                <canvas id="dailyConsumptionChart"></canvas>
+            </div>
 
-    <!-- Main Content Start -->
-    <div class="main-content">
-        <div class="section">
-            <h2>Daily Electricity Consumption (Last 15 Days)</h2>
-            <canvas id="dailyConsumptionChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Electricity Usage Histogram</h2>
+                <canvas id="electricityHistogramChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Electricity Usage Histogram</h2>
-            <canvas id="electricityHistogramChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Daily Water Consumption (Last 15 Days)</h2>
+                <canvas id="dailyWaterConsumptionChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Daily Water Consumption (Last 15 Days)</h2>
-            <canvas id="dailyWaterConsumptionChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Water Usage Histogram</h2>
+                <canvas id="waterHistogramChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Water Usage Histogram</h2>
-            <canvas id="waterHistogramChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Daily Gas Consumption (Last 15 Days)</h2>
+                <canvas id="dailyGasConsumptionChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Daily Gas Consumption (Last 15 Days)</h2>
-            <canvas id="dailyGasConsumptionChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Gas Usage Histogram</h2>
+                <canvas id="gasHistogramChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Gas Usage Histogram</h2>
-            <canvas id="gasHistogramChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Daily Fuel Consumption (Last 15 Days)</h2>
+                <canvas id="dailyFuelConsumptionChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Daily Fuel Consumption (Last 15 Days)</h2>
-            <canvas id="dailyFuelConsumptionChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Fuel Usage Histogram</h2>
+                <canvas id="fuelHistogramChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Fuel Usage Histogram</h2>
-            <canvas id="fuelHistogramChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Bills</h2>
+                <a href="{{ url_for('view_electricity_bills') }}" class="btn">View Electricity Bills</a>
+                <a href="{{ url_for('view_water_bills') }}" class="btn">View Water Bills</a>
+                <a href="{{ url_for('view_gas_bills') }}" class="btn">View Gas Bills</a>
+                <a href="{{ url_for('view_fuel_bills') }}" class="btn">View Fuel Bills</a>
+            </div>
 
-        <div class="section">
-            <h2>Bills</h2>
-            <a href="{{ url_for('view_electricity_bills') }}" class="btn">View Electricity Bills</a>
-            <a href="{{ url_for('view_water_bills') }}" class="btn">View Water Bills</a>
-            <a href="{{ url_for('view_gas_bills') }}" class="btn">View Gas Bills</a>
-            <a href="{{ url_for('view_fuel_bills') }}" class="btn">View Fuel Bills</a>
-        </div>
+            <div class="section">
+                <h2>Daily Carbon Footprint (Last 15 Days)</h2>
+                <canvas id="dailyCarbonChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Daily Carbon Footprint (Last 15 Days)</h2>
-            <canvas id="dailyCarbonChart"></canvas>
-        </div>
+            <div class="section">
+                <h2>Monthly Carbon Footprint</h2>
+                <canvas id="carbonHistogramChart"></canvas>
+            </div>
 
-        <div class="section">
-            <h2>Monthly Carbon Footprint</h2>
-            <canvas id="carbonHistogramChart"></canvas>
-        </div>
-
-        <div class="section" style="display: flex; justify-content: center;">
-            <div style="background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 400px;">
-                <h2 style="color: #68a469;">Current Emission Level</h2>
-                <canvas id="emissionLevelChart" style="max-width: 300px; height: 300px;"></canvas>
-                <p style="margin-top: 20px; font-size: 1.2rem; text-align: center;">
-                    You are emitting:
-                    <strong style="color: {{ 'red' if average_emission_level == 'high' else 'orange' if average_emission_level == 'moderate' else 'green' }};">
-                        {{ average_emission_level|capitalize }}
-                    </strong> amount of CO₂.
-                </p>
+            <div class="section" style="display: flex; justify-content: center;">
+                <div
+                    style="background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 8px rgba(0,0,0,0.1); max-width: 400px;">
+                    <h2 style="color: #68a469;">Current Emission Level</h2>
+                    <canvas id="emissionLevelChart" style="max-width: 300px; height: 300px;"></canvas>
+                    <p style="margin-top: 20px; font-size: 1.2rem; text-align: center;">
+                        You are emitting:
+                        <strong
+                            style="color: {{ 'red' if average_emission_level == 'high' else 'orange' if average_emission_level == 'moderate' else 'green' }};">
+                            {{ average_emission_level|capitalize }}
+                        </strong> amount of CO₂.
+                    </p>
+                </div>
             </div>
         </div>
+        <!-- Main Content End -->
+
     </div>
-    <!-- Main Content End -->
 
-</div>
-    
 
-    
+
 
     <div class="section">
         <a href="{{ url_for('update_user') }}" class="btn">Update Your Information</a>
@@ -691,50 +664,50 @@
         });
     </script>
 
-<script>
-    const emissionPercentage = {{ 100 if average_emission_level == 'high' else 66 if average_emission_level == 'moderate' else 33 }};
-    const remainingPercentage = 100 - emissionPercentage;
+    <script>
+        const emissionPercentage = {{ 100 if average_emission_level == 'high' else 66 if average_emission_level == 'moderate' else 33 }};
+        const remainingPercentage = 100 - emissionPercentage;
 
-    const ctxEmissionLevel = document.getElementById('emissionLevelChart').getContext('2d');
-    const emissionLevelChart = new Chart(ctxEmissionLevel, {
-        type: 'doughnut',
-        data: {
-            labels: ['Your Emissions', 'Remaining Safe Limit'],
-            datasets: [{
-                data: [emissionPercentage, remainingPercentage],
-                backgroundColor: [
-                    emissionPercentage >= 80 ? 'rgba(255, 99, 132, 0.7)' : 
-                    emissionPercentage >= 50 ? 'rgba(255, 205, 86, 0.7)' : 
-                    'rgba(75, 192, 192, 0.7)',
-                    'rgba(200, 200, 200, 0.3)'
-                ],
-                borderColor: [
-                    emissionPercentage >= 80 ? 'rgba(255, 99, 132, 1)' :
-                    emissionPercentage >= 50 ? 'rgba(255, 205, 86, 1)' :
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(200, 200, 200, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            cutout: '70%',
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.raw + '%';
+        const ctxEmissionLevel = document.getElementById('emissionLevelChart').getContext('2d');
+        const emissionLevelChart = new Chart(ctxEmissionLevel, {
+            type: 'doughnut',
+            data: {
+                labels: ['Your Emissions', 'Remaining Safe Limit'],
+                datasets: [{
+                    data: [emissionPercentage, remainingPercentage],
+                    backgroundColor: [
+                        emissionPercentage >= 80 ? 'rgba(255, 99, 132, 0.7)' :
+                            emissionPercentage >= 50 ? 'rgba(255, 205, 86, 0.7)' :
+                                'rgba(75, 192, 192, 0.7)',
+                        'rgba(200, 200, 200, 0.3)'
+                    ],
+                    borderColor: [
+                        emissionPercentage >= 80 ? 'rgba(255, 99, 132, 1)' :
+                            emissionPercentage >= 50 ? 'rgba(255, 205, 86, 1)' :
+                                'rgba(75, 192, 192, 1)',
+                        'rgba(200, 200, 200, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                cutout: '70%',
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.label + ': ' + context.raw + '%';
+                            }
                         }
+                    },
+                    legend: {
+                        display: true,
+                        position: 'bottom'
                     }
-                },
-                legend: {
-                    display: true,
-                    position: 'bottom'
                 }
             }
-        }
-    });
-</script>
+        });
+    </script>
 
 </body>
 
