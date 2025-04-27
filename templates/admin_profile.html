@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Profile</title>
+    <style>
+        body {
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .profile-image {
+            width: 100px;
+            height: 100px;
+            background-color: #d9d9d9;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #4f7c4f;
+            margin: 10px 0 5px;
+        }
+
+        p {
+            color: #666;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-top: 20px;
+        }
+
+        .section h2 {
+            font-size: 18px;
+            color: #4f7c4f;
+            margin-bottom: 10px;
+        }
+
+        .section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .section ul li {
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .sidebar-btn {
+            display: block;
+            background-color: #6a8f6a;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar-btn:hover {
+            background-color: #4a6d4a;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: #e2eee2;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .logout {
+            text-align: center;
+            color: #c0392b;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 10px 0;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 30px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+
+<body>
+     <!-- Sidebar -->
+     <div class="sidebar">
+        <a href="{{ url_for('admin_profile') }}" class="sidebar-btn">Profile</a>
+        <a href="{{ url_for('user_details') }}" class="sidebar-btn">User Details</a>
+        <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+    </div>
+
+    <div class="main-content">
+        <div class="card">
+            <div class="profile-header">
+                <div class="profile-image"></div> <!-- Placeholder for Admin Photo -->
+                <h1>{{ admin.display_name }}</h1>
+                <p>{{ admin.email }}</p>
+            </div>
+
+            <div class="section">
+                <h2>Admin Information</h2>
+                <ul>
+                    <li><strong>Admin ID:</strong> {{ admin.id }}</li>
+                    <li><strong>Email:</strong> {{ admin.email }}</li>
+                    <li><strong>Display Name:</strong> {{ admin.display_name }}</li>
+                </ul>
+            </div>
+
+            <a href="{{ url_for('admin_dashboard') }}" class="sidebar-btn" style="margin-top: 30px;">Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+
+</html>
