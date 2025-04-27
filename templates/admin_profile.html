@@ -122,6 +122,13 @@
 </head>
 
 <body>
+     <!-- Sidebar -->
+     <div class="sidebar">
+        <a href="{{ url_for('admin_profile') }}" class="sidebar-btn">Profile</a>
+        <a href="{{ url_for('user_details') }}" class="sidebar-btn">User Details</a>
+        <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+    </div>
+
     <div class="main-content">
         <div class="card">
             <div class="profile-header">

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>User Details - Admin</title>
+    <style>
+        body {
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+            margin: 0;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: #e2eee2;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-btn {
+            display: block;
+            background-color: #6a8f6a;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar-btn:hover {
+            background-color: #4a6d4a;
+        }
+
+        .logout {
+            margin-top: 20px;
+            color: #c0392b;
+            text-decoration: none;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 30px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 15px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        thead {
+            background-color: #68a469;
+            color: white;
+        }
+
+        thead th {
+            padding: 14px;
+            text-align: left;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.3s;
+        }
+
+        tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        tbody td {
+            padding: 12px 14px;
+            color: #333;
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="{{ url_for('admin_profile') }}" class="sidebar-btn">Profile</a>
+            <a href="{{ url_for('user_details') }}" class="sidebar-btn">User Details</a>
+            <a href="{{ url_for('logout') }}" class="logout">Logout</a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <h1>User Details (Ranked based on Carbon Emissions)</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Division</th>
+                        <th>Electricity Provider</th>
+                        <th>Water Provider</th>
+                        <th>Gas Provider</th>
+                        <th>Total Emission (kg)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.emission_rank }}</td>
+                        <td>{{ user.display_name }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.phone or 'N/A' }}</td>
+                        <td>{{ user.division or 'N/A' }}</td>
+                        <td>{{ user.electricity_provider or 'N/A' }}</td>
+                        <td>{{ user.water_provider or 'N/A' }}</td>
+                        <td>{{ user.gas_provider or 'N/A' }}</td>
+                        <td>{{ user.total_emission|round(2) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <a href="{{ url_for('admin_dashboard') }}" class="sidebar-btn" style="margin-top: 30px;">Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+
+</html>

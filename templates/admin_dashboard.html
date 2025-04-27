@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
+
 <head>
     <meta charset="UTF-8">
     <title>Admin Dashboard</title>
@@ -93,13 +94,103 @@
             font-size: 18px;
         }
     </style>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f7f7f7;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 220px;
+            background-color: #e2eee2;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-btn {
+            display: block;
+            background-color: #6a8f6a;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .sidebar-btn:hover {
+            background-color: #4a6d4a;
+        }
+
+        .logout {
+            text-align: center;
+            color: #c0392b;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 10px 0;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 30px;
+            overflow-x: auto;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            color: #68a469;
+            margin-bottom: 20px;
+        }
+
+        .welcome-message {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .welcome-message h1 {
+            color: #4CAF50;
+            margin-bottom: 10px;
+        }
+
+        .welcome-message p {
+            color: #333;
+            font-size: 18px;
+        }
+    </style>
 </head>
+
 
 <body>
     <div class="container">
         <!-- Sidebar Start -->
         <div class="sidebar">
             <a href="{{ url_for('admin_profile') }}" class="sidebar-btn">Profile</a>
+            <a href="{{ url_for('user_details') }}" class="sidebar-btn">User Details</a>
             <a href="{{ url_for('logout') }}" class="logout">Logout</a>
         </div>
         <!-- Sidebar End -->
@@ -114,5 +205,6 @@
         <!-- Main Content End -->
     </div>
 </body>
+
 
 </html>

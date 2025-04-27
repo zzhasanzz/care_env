@@ -193,6 +193,40 @@ def admin_profile():
 
     return render_template('admin_profile.html', admin=admin)
 
+@app.route('/admin/user_details')
+def user_details():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    # Fetch user list with service providers and RANK() based on total emissions
+    cursor.execute("""
+        SELECT 
+            u.id,
+            u.display_name,
+            u.email,
+            u.phone,
+            u.division,
+            up.provider_name AS electricity_provider,
+            uw.provider_name AS water_provider,
+            ug.provider_name AS gas_provider,
+            IFNULL(SUM(dc.total_emission_kg), 0) AS total_emission,
+            RANK() OVER (ORDER BY IFNULL(SUM(dc.total_emission_kg), 0) DESC) AS emission_rank
+        FROM user u
+        LEFT JOIN utility_providers up ON u.electricity_provider = up.id
+        LEFT JOIN utility_providers uw ON u.water_provider = uw.id
+        LEFT JOIN utility_providers ug ON u.gas_provider = ug.id
+        LEFT JOIN daily_carbon_footprint dc ON u.id = dc.user_id
+        GROUP BY u.id
+        ORDER BY total_emission DESC
+    """)
+    users = cursor.fetchall()
+    cursor.close()
+
+    return render_template('user_details.html', users=users)
+
+
 
 @app.route('/dashboard')
 @login_required
