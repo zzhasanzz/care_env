@@ -390,7 +390,7 @@ def dashboard():
             "suggestion": record["suggestions"]
         }
         for record in carbon_footprint_records
-    ]
+    ]   
 
     # Fetch user's vehicles (NOW FROM user_vehicles)
     cursor.execute("""
@@ -443,6 +443,17 @@ def dashboard():
         }
         for record in fuel_consumption_records
     ]
+    
+    # Combine all user info
+    user_info = {
+        'profile': user_profile,
+        'details': user_data,
+        'housing': housing_data,
+        'cars': car_list,
+    }
+
+    # Save into session ✅
+    session['user_info'] = user_info
 
     return render_template(
         'dashboard.html',
