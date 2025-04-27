@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 
-
 <head>
     <meta charset="UTF-8">
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js for charts -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,100 +68,22 @@
         }
 
         .section {
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         .section h2 {
             color: #68a469;
             margin-bottom: 20px;
-        }
-
-        .welcome-message {
-            background: #ffffff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
-        }
-
-        .welcome-message h1 {
-            color: #4CAF50;
-            margin-bottom: 10px;
-        }
-
-        .welcome-message p {
-            color: #333;
-            font-size: 18px;
-        }
-    </style>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background-color: #f7f7f7;
-        }
-
-        .container {
-            display: flex;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        .sidebar {
-            width: 220px;
-            background-color: #e2eee2;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            overflow-y: auto;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar-btn {
-            display: block;
-            background-color: #6a8f6a;
-            color: white;
-            text-align: center;
-            padding: 10px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            margin-bottom: 10px;
-            transition: background-color 0.3s;
-        }
-
-        .sidebar-btn:hover {
-            background-color: #4a6d4a;
-        }
-
-        .logout {
-            text-align: center;
-            color: #c0392b;
             font-weight: bold;
-            text-decoration: none;
-            padding: 10px 0;
-            font-size: 14px;
-            margin-top: 20px;
         }
 
-        .main-content {
-            margin-left: 260px;
-            flex: 1;
+        .chart-container {
+            background: white;
             padding: 30px;
-            overflow-x: auto;
-        }
-
-        .section {
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
-        }
-
-        .section h2 {
-            color: #68a469;
-            margin-bottom: 20px;
         }
 
         .welcome-message {
@@ -170,20 +92,25 @@
             border-radius: 10px;
             box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
+            margin-bottom: 50px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #6a8f6a;
         }
 
-        .welcome-message h1 {
-            color: #4CAF50;
-            margin-bottom: 10px;
+        .charts-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
         }
 
-        .welcome-message p {
-            color: #333;
-            font-size: 18px;
+        .chart-container {
+            flex: 1 1 500px;
+            max-width: 600px;
         }
     </style>
 </head>
-
 
 <body>
     <div class="container">
@@ -191,20 +118,132 @@
         <div class="sidebar">
             <a href="{{ url_for('admin_profile') }}" class="sidebar-btn">Profile</a>
             <a href="{{ url_for('user_details') }}" class="sidebar-btn">User Details</a>
+            <a href="{{ url_for('view_providers') }}" class="sidebar-btn">View Utility Providers</a>
+            <a href="{{ url_for('view_vehicles') }}" class="sidebar-btn">View Vehicles</a>
+            <a href="{{ url_for('add_utility_provider') }}" class="sidebar-btn">Add Utility Provider</a>
+            <a href="{{ url_for('add_vehicle') }}" class="sidebar-btn">Add Vehicle</a>
             <a href="{{ url_for('logout') }}" class="logout">Logout</a>
         </div>
         <!-- Sidebar End -->
 
         <!-- Main Content Start -->
         <div class="main-content">
+
+
             <div class="welcome-message">
-                <h1>Welcome, Admin {{ admin_name }}</h1>
+                <h1>Welcome</h1>
                 <p>You are logged in as an administrator.</p>
             </div>
+
+            <div class="section" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+
+                <div class="chart-container" style="flex: 1 1 500px; max-width: 600px;">
+                    <h2>Top 5 Utility Providers (by Number of Users)</h2>
+                    <canvas id="topProvidersChart"></canvas>
+                </div>
+
+                <div class="chart-container" style="flex: 1 1 500px; max-width: 600px;">
+                    <h2>Top 5 Users (by Total Carbon Emission)</h2>
+                    <canvas id="topUsersChart"></canvas>
+                </div>
+
+            </div>
+
         </div>
         <!-- Main Content End -->
     </div>
-</body>
 
+    <script>
+        const providerNames = {{ top_providers | map(attribute = 'provider_name') | list | tojson }};
+        const providerUsers = {{ top_providers | map(attribute = 'num_users') | list | tojson }};
+
+        const ctx = document.getElementById('topProvidersChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: providerNames,
+                datasets: [{
+                    label: 'Number of Users',
+                    data: providerUsers,
+                    backgroundColor: 'rgba(106, 143, 106, 0.7)',
+                    borderColor: 'rgba(106, 143, 106, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Provider Name' },
+                        ticks: {
+                            maxRotation: 0,
+                            minRotation: 0,
+                            autoSkip: false,
+                            callback: function (value, index, ticks) {
+                                const label = this.getLabelForValue(value);
+                                return label.length > 20 ? label.substr(0, 20) + '...' : label;
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Number of Users' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                }
+            }
+        });
+    </script>
+
+    <script>
+        const userNames = {{ top_users | map(attribute = 'display_name') | list | tojson }};
+        const userEmissions = {{ top_users | map(attribute = 'total_emission') | list | tojson }};
+
+        const ctx2 = document.getElementById('topUsersChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: userNames,
+                datasets: [{
+                    label: 'Total Carbon Emission (kg)',
+                    data: userEmissions,
+                    borderColor: 'rgba(255, 205, 86, 1)',
+                    backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'User Name' },
+                        ticks: {
+                            maxRotation: 0,
+                            minRotation: 0,
+                            autoSkip: false,
+                            callback: function (value, index, ticks) {
+                                const label = this.getLabelForValue(value);
+                                return label.length > 20 ? label.substr(0, 20) + '...' : label;
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Total Carbon Emission (kg)' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                }
+            }
+        });
+    </script>
+
+
+</body>
 
 </html>

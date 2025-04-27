@@ -177,8 +177,43 @@ def search_cars():
 def admin_dashboard():
     if session.get('user_type') != 'admin':
         return "Access Denied", 403
-    
-    return render_template('admin_dashboard.html', admin_name=session.get('display_name'))
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    # Fetch top 5 utility providers
+    cursor.execute("""
+        SELECT 
+            up.provider_name,
+            COUNT(u.id) AS num_users
+        FROM utility_providers up
+        LEFT JOIN user u 
+        ON (u.electricity_provider = up.id OR u.water_provider = up.id OR u.gas_provider = up.id)
+        GROUP BY up.id
+        ORDER BY num_users DESC
+        LIMIT 5
+    """)
+    top_providers = cursor.fetchall()
+
+    #  Fetch top 5 users with highest total carbon emissions
+    cursor.execute("""
+        SELECT 
+            u.display_name,
+            IFNULL(SUM(dc.total_emission_kg), 0) AS total_emission
+        FROM user u
+        LEFT JOIN daily_carbon_footprint dc ON u.id = dc.user_id
+        GROUP BY u.id
+        ORDER BY total_emission DESC
+        LIMIT 5
+    """)
+    top_users = cursor.fetchall()
+
+    cursor.close()
+
+    return render_template('admin_dashboard.html', 
+                            admin_name=session.get('display_name'), 
+                            top_providers=top_providers,
+                            top_users=top_users)  # ✅ Pass it to template!
+
 
 @app.route('/admin_profile')
 def admin_profile():
@@ -228,6 +263,124 @@ def user_details():
 
     return render_template('user_details.html', users=users)
 
+
+@app.route('/admin/add_utility_provider', methods=['GET', 'POST'])
+def add_utility_provider():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    if request.method == 'POST':
+        provider_name = request.form['provider_name']
+        energy_type = request.form['energy_type']
+        transaction_phone = request.form.get('transaction_phone')
+        unit_price = request.form['unit_price']
+        emission_factor = request.form.get('emission_factor') or None
+        billing_frequency = request.form['billing_frequency']
+        website = request.form.get('website')
+        region = request.form['region']
+        description = request.form.get('description')
+
+        cursor = db.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("""
+            INSERT INTO utility_providers 
+            (provider_name, energy_type, transaction_phone, unit_price, emission_factor, billing_frequency, website, region, description)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (provider_name, energy_type, transaction_phone, unit_price, emission_factor, billing_frequency, website, region, description))
+        db.commit()
+        cursor.close()
+
+        return redirect(url_for('view_providers'))  # after adding, redirect back to dashboard
+
+    return render_template('add_utility_provider.html')
+
+@app.route('/admin/view_providers')
+def view_providers():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute("""
+        SELECT 
+            up.id,
+            up.provider_name,
+            up.region,
+            up.energy_type,
+            up.transaction_phone,
+            up.unit_price,
+            up.emission_factor,
+            up.billing_frequency,
+            up.website,
+            COUNT(u.id) AS num_users,
+            RANK() OVER (ORDER BY COUNT(u.id) DESC) AS rank_position
+        FROM utility_providers up
+        LEFT JOIN user u 
+            ON (u.electricity_provider = up.id 
+                OR u.water_provider = up.id 
+                OR u.gas_provider = up.id)
+        GROUP BY up.id
+        ORDER BY up.energy_type, num_users DESC
+    """)
+    providers = cursor.fetchall()
+    cursor.close()
+
+    return render_template('view_providers.html', providers=providers)
+
+@app.route('/admin/view_vehicles')
+def view_vehicles():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    # Fetch all vehicles
+    cursor.execute("""
+        SELECT 
+        v.id,
+        v.model_name,
+        v.vehicle_type,
+        v.fuel_type,
+        v.urban_efficiency,
+        v.highway_efficiency,
+        v.daily_average_km,
+        v.description,
+        COUNT(uv.id) AS num_users
+    FROM vehicles v
+    LEFT JOIN user_vehicles uv ON v.id = uv.vehicle_id
+    GROUP BY v.id
+    ORDER BY num_users DESC, v.model_name ASC;
+
+    """)
+    vehicles = cursor.fetchall()
+    cursor.close()
+
+    return render_template('view_vehicles.html', vehicles=vehicles)
+
+@app.route('/admin/add_vehicle', methods=['GET', 'POST'])
+def add_vehicle():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    if request.method == 'POST':
+        model_name = request.form['model_name']
+        vehicle_type = request.form['vehicle_type']
+        fuel_type = request.form['fuel_type']
+        urban_efficiency = request.form['urban_efficiency']
+        highway_efficiency = request.form['highway_efficiency']
+        daily_average_km = request.form['daily_average_km']
+        description = request.form.get('description')
+
+        cursor = db.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("""
+            INSERT INTO vehicles 
+            (model_name, vehicle_type, fuel_type, urban_efficiency, highway_efficiency, daily_average_km, description)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (model_name, vehicle_type, fuel_type, urban_efficiency, highway_efficiency, daily_average_km, description))
+        db.commit()
+        cursor.close()
+
+        return redirect(url_for('view_vehicles', success='1'))
+    return render_template('add_vehicle.html')
 
 
 @app.route('/dashboard')
