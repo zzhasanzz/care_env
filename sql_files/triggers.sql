@@ -60,3 +60,32 @@ BEGIN
 END //
 
 DELIMITER ;
+
+
+--inserting utility providers
+
+DELIMITER //
+
+CREATE TRIGGER set_nulls_in_utility_providers
+BEFORE INSERT ON utility_providers
+FOR EACH ROW
+BEGIN
+    -- For INSERTs
+    IF NEW.transaction_phone = '' THEN
+        SET NEW.transaction_phone = NULL;
+    END IF;
+
+    IF NEW.website = '' THEN
+        SET NEW.website = NULL;
+    END IF;
+
+    IF NEW.region = '' THEN
+        SET NEW.region = NULL;
+    END IF;
+
+    IF NEW.description = '' THEN
+        SET NEW.description = NULL;
+    END IF;
+END;
+
+//

@@ -227,6 +227,35 @@ def user_details():
     return render_template('user_details.html', users=users)
 
 
+@app.route('/admin/add_utility_provider', methods=['GET', 'POST'])
+def add_utility_provider():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    if request.method == 'POST':
+        provider_name = request.form['provider_name']
+        energy_type = request.form['energy_type']
+        transaction_phone = request.form.get('transaction_phone')
+        unit_price = request.form['unit_price']
+        emission_factor = request.form.get('emission_factor') or None
+        billing_frequency = request.form['billing_frequency']
+        website = request.form.get('website')
+        region = request.form['region']
+        description = request.form.get('description')
+
+        cursor = db.cursor(MySQLdb.cursors.DictCursor)
+        cursor.execute("""
+            INSERT INTO utility_providers 
+            (provider_name, energy_type, transaction_phone, unit_price, emission_factor, billing_frequency, website, region, description)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (provider_name, energy_type, transaction_phone, unit_price, emission_factor, billing_frequency, website, region, description))
+        db.commit()
+        cursor.close()
+
+        return redirect(url_for('admin_dashboard'))  # after adding, redirect back to dashboard
+
+    return render_template('add_utility_provider.html')
+
 
 @app.route('/dashboard')
 @login_required
