@@ -145,3 +145,52 @@ END //
 
 DELIMITER ;
 
+
+
+DROP PROCEDURE IF EXISTS InsertWaterConsumption;
+
+DELIMITER //
+
+CREATE PROCEDURE InsertWaterConsumption(
+    IN p_user_id INT,
+    IN p_utility_provider_id INT,
+    IN p_consumption_date DATE,
+    IN p_liters_consumed FLOAT
+)
+BEGIN
+    DECLARE v_unit_price FLOAT DEFAULT 0;
+    DECLARE v_daily_bill FLOAT DEFAULT 0;
+
+    SELECT unit_price INTO v_unit_price
+    FROM utility_providers
+    WHERE id = p_utility_provider_id
+    LIMIT 1;
+
+    SET v_daily_bill = (p_liters_consumed / 1000) * v_unit_price;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM daily_water_consumption
+        WHERE user_id = p_user_id AND consumption_date = p_consumption_date
+    ) THEN
+        INSERT INTO daily_water_consumption (
+            user_id,
+            utility_provider_id,
+            consumption_date,
+            liters_consumed,
+            daily_bill
+        )
+        VALUES (
+            p_user_id,
+            p_utility_provider_id,
+            p_consumption_date,
+            p_liters_consumed,
+            v_daily_bill
+        );
+    END IF;
+END;
+//
+
+DELIMITER ;
+
+

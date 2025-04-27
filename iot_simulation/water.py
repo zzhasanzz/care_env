@@ -123,52 +123,40 @@ def fetch_all_users():
 
 def log_daily_water_consumption(user_id, utility_provider_id, date, liters_consumed, unit_price):
     """
-    Log daily water consumption into the daily_water_consumption table with daily bill.
-    Only inserts new records or updates if they don't exist.
+    Call the InsertWaterConsumption procedure to log daily water consumption properly.
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        # First check if record already exists for this date and user
-        cursor.execute("""
-            SELECT 1 FROM daily_water_consumption 
-            WHERE user_id = %s AND consumption_date = %s
-        """, (user_id, date))
-        
-        if cursor.fetchone():
-            print(f"Water record already exists for user {user_id} on {date} - skipping")
-            return
+        cursor.callproc('InsertWaterConsumption', (user_id, utility_provider_id, date, liters_consumed))
 
-        # Calculate daily bill (convert liters to cubic meters if needed)
-        # Assuming unit_price is per 1000 liters (1 cubic meter)
-        daily_bill = (liters_consumed / 1000) * unit_price
+        # ✅ Correct way to clear result sets
+        while cursor.nextset() is not None:
+            pass
 
-        # Insert new record only
-        query = """
-            INSERT INTO daily_water_consumption 
-            (user_id, utility_provider_id, consumption_date, liters_consumed, daily_bill)
-            VALUES (%s, %s, %s, %s, %s)
-        """
-        cursor.execute(query, (user_id, utility_provider_id, date, liters_consumed, daily_bill))
         conn.commit()
-        print(f"Logged water consumption for user {user_id} on {date}: {liters_consumed:.2f} liters")
+        print(f"✅ Water record inserted for user {user_id} on {date}")
 
-    except MySQLdb.IntegrityError as e:
-        print(f"IntegrityError logging water consumption: {e} for user_id={user_id}, date={date}")
     except MySQLdb.Error as e:
-        print(f"MySQL Error logging water consumption: {e}")
+        print(f"❌ Error calling InsertWaterConsumption: {e}")
+        if conn:
+            conn.rollback()
     finally:
         cursor.close()
         conn.close()
 
+
+
+
+
 def calculate_and_log_water_consumption():
     """
-    Correct version: fill missing days for past 6 months + current month
+    Calculate and log daily water consumption for all users for past 6 months + current month.
     """
     all_users = fetch_all_users()
     today = datetime.date.today()
-    six_months_ago = today.replace(day=1) - relativedelta(months=6)
+    six_months_ago = (today.replace(day=1) - relativedelta(months=6))  # Start from 6 months back
 
     for user in all_users:
         user_id = user['user_id']
@@ -178,36 +166,46 @@ def calculate_and_log_water_consumption():
         num_cars = user['num_cars']
         unit_price = user['unit_price']
 
-        print(f"\nProcessing water data for user {user_id}")
+        # Get the most recent consumption date for this user
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT MAX(consumption_date) as last_date 
+            FROM daily_water_consumption 
+            WHERE user_id = %s
+        """, (user_id,))
+        result = cursor.fetchone()
+        last_date = result[0] if result and result[0] else None
+        cursor.close()
+        conn.close()
 
-        current_date = six_months_ago
-        while current_date <= today:
-            # Check if this date's record already exists
-            conn = get_db_connection()
-            cursor = conn.cursor()
-
-            cursor.execute("""
-                SELECT 1 FROM daily_water_consumption
-                WHERE user_id = %s AND consumption_date = %s
-            """, (user_id, current_date))
-
-            exists = cursor.fetchone()
-            cursor.close()
-            conn.close()
-
-            if exists:
-                # Already recorded, no need to insert
-                current_date += datetime.timedelta(days=1)
+        # Determine starting point:
+        if last_date:
+            start_date = max(last_date + datetime.timedelta(days=1), six_months_ago)
+            if start_date > today:
+                print(f"User {user_id} already up to date (last record: {last_date})")
                 continue
+        else:
+            # No data at all: simulate from 6 months ago
+            start_date = six_months_ago
 
-            # Not recorded -> simulate and log it
-            month = current_date.month
+        # Now simulate from start_date to today
+        days_to_simulate = (today - start_date).days + 1
+        if days_to_simulate <= 0:
+            continue
+
+        print(f"Generating {days_to_simulate} days of water data for user {user_id} from {start_date}")
+
+        for day_offset in range(days_to_simulate):
+            date_to_simulate = start_date + datetime.timedelta(days=day_offset)
+            
+            month = date_to_simulate.month
             season = "summer" if 4 <= month <= 9 else "winter"
 
             liters_consumed = simulate_daily_water_usage(
                 square_footage=house_size,
                 num_members=num_members,
-                has_garden=True,
+                has_garden=True,  # Assume garden
                 num_cars=num_cars,
                 season=season
             )
@@ -215,15 +213,10 @@ def calculate_and_log_water_consumption():
             log_daily_water_consumption(
                 user_id=user_id,
                 utility_provider_id=utility_provider_id,
-                date=current_date,
+                date=date_to_simulate,
                 liters_consumed=liters_consumed,
                 unit_price=unit_price
             )
-
-            current_date += datetime.timedelta(days=1)
-
-    print("\n✅ Water simulation complete for all users!")
-
 
 # Function to simulate daily water usage
 def simulate_daily_water_usage(square_footage, num_members, has_garden=True, num_cars=1, season="summer"):
