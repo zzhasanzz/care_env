@@ -475,6 +475,12 @@ def dashboard():
     )
 
 
+@app.route('/profile')
+def profile():
+    # Assuming you already have user_info session
+    return render_template('profile.html', user_info=session['user_info'])
+
+
 @app.route('/update_user', methods=['GET', 'POST'])
 def update_user():
     if 'profile' not in session or 'id' not in session['profile']:
