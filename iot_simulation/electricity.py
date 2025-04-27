@@ -310,7 +310,6 @@ def main(user_id):
     print(f"Total Electricity Bill: Tk {total_bill:.2f}")
 
 if __name__ == "__main__":
-    main(user_id=1)
     calculate_and_log_consumption()
 
 
