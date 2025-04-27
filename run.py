@@ -256,6 +256,41 @@ def add_utility_provider():
 
     return render_template('add_utility_provider.html')
 
+@app.route('/admin/view_providers')
+def view_providers():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    cursor.execute("""
+        SELECT 
+            up.id,
+            up.provider_name,
+            up.region,
+            up.energy_type,
+            up.transaction_phone,
+            up.unit_price,
+            up.emission_factor,
+            up.billing_frequency,
+            up.website,
+            COUNT(u.id) AS num_users,
+            RANK() OVER (ORDER BY COUNT(u.id) DESC) AS rank_position
+        FROM utility_providers up
+        LEFT JOIN user u 
+            ON (u.electricity_provider = up.id 
+                OR u.water_provider = up.id 
+                OR u.gas_provider = up.id)
+        GROUP BY up.id
+        ORDER BY up.energy_type, num_users DESC
+    """)
+    providers = cursor.fetchall()
+    cursor.close()
+
+    return render_template('view_providers.html', providers=providers)
+
+
+
 
 @app.route('/dashboard')
 @login_required
