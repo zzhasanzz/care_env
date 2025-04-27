@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <style>
+        body {
+            background-color: #f7f7f7;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        }
+        .profile-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .profile-image {
+            width: 100px;
+            height: 100px;
+            background-color: #d9d9d9;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+        }
+        h1 {
+            font-size: 24px;
+            color: #4f7c4f;
+            margin: 10px 0 5px;
+        }
+        p {
+            color: #666;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        .section {
+            margin-top: 20px;
+        }
+        .section h2 {
+            font-size: 18px;
+            color: #4f7c4f;
+            margin-bottom: 10px;
+        }
+        .section ul {
+            list-style: none;
+            padding: 0;
+        }
+        .section ul li {
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <div class="profile-header">
+            <div class="profile-image"></div> <!-- Placeholder for image -->
+            <h1>{{ user_info['profile']['name'] }}</h1>
+            <p>{{ user_info['profile']['email'] }}</p>
+        </div>
+
+        <div class="section">
+            <h2>Profile Information</h2>
+            <ul>
+                <li><strong>Phone:</strong> {{ user_info['details']['phone'] }}</li>
+                <li><strong>Address:</strong> {{ user_info['details']['address'] }}</li>
+                <li><strong>Division:</strong> {{ user_info['details']['division'] }}</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Providers</h2>
+            <ul>
+                <li><strong>Electricity:</strong> {{ user_info['details']['electricity_provider'] }}</li>
+                <li><strong>Water:</strong> {{ user_info['details']['water_provider'] }}</li>
+                <li><strong>Gas:</strong> {{ user_info['details']['gas_provider'] }}</li>
+                <li><strong>Gas Type:</strong> {{ user_info['details']['gas_type'] }}</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Housing</h2>
+            {% if user_info['housing'] %}
+            <ul>
+                <li><strong>House Size:</strong> {{ user_info['housing']['house_size_sqft'] }} sqft</li>
+                <li><strong>Members:</strong> {{ user_info['housing']['num_members'] }}</li>
+                <li><strong>Solar Watt:</strong> {{ user_info['housing']['solar_panel_watt'] }} W</li>
+                <li><strong>Wind Watt:</strong> {{ user_info['housing']['wind_source_watt'] }} W</li>
+            </ul>
+            {% else %}
+            <p>No housing info available.</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>Cars</h2>
+            {% if user_info['cars'] %}
+            <ul>
+                {% for car in user_info['cars'] %}
+                <li>{{ car }}</li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No cars added.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
