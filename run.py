@@ -175,8 +175,25 @@ def search_cars():
 def admin_dashboard():
     if session.get('user_type') != 'admin':
         return "Access Denied", 403
-    
-    return render_template('admin_dashboard.html', admin_name=session.get('display_name'))
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    # Fetch top 5 utility providers based on number of users
+    cursor.execute("""
+        SELECT 
+            up.provider_name,
+            COUNT(u.id) AS num_users
+        FROM utility_providers up
+        LEFT JOIN user u 
+        ON (u.electricity_provider = up.id OR u.water_provider = up.id OR u.gas_provider = up.id)
+        GROUP BY up.id
+        ORDER BY num_users DESC
+        LIMIT 5
+    """)
+    top_providers = cursor.fetchall()
+
+    return render_template('admin_dashboard.html', admin_name=session.get('display_name'), top_providers=top_providers)
+
 
 @app.route('/admin_profile')
 def admin_profile():

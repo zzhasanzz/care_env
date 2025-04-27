@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 
-
 <head>
     <meta charset="UTF-8">
     <title>Admin Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Chart.js for charts -->
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,100 +68,22 @@
         }
 
         .section {
-            margin-bottom: 30px;
+            margin-bottom: 40px;
         }
 
         .section h2 {
             color: #68a469;
             margin-bottom: 20px;
-        }
-
-        .welcome-message {
-            background: #ffffff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
-        }
-
-        .welcome-message h1 {
-            color: #4CAF50;
-            margin-bottom: 10px;
-        }
-
-        .welcome-message p {
-            color: #333;
-            font-size: 18px;
-        }
-    </style>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background-color: #f7f7f7;
-        }
-
-        .container {
-            display: flex;
-            min-height: 100vh;
-            overflow: hidden;
-        }
-
-        .sidebar {
-            width: 220px;
-            background-color: #e2eee2;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            overflow-y: auto;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .sidebar-btn {
-            display: block;
-            background-color: #6a8f6a;
-            color: white;
-            text-align: center;
-            padding: 10px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-size: 14px;
-            margin-bottom: 10px;
-            transition: background-color 0.3s;
-        }
-
-        .sidebar-btn:hover {
-            background-color: #4a6d4a;
-        }
-
-        .logout {
-            text-align: center;
-            color: #c0392b;
             font-weight: bold;
-            text-decoration: none;
-            padding: 10px 0;
-            font-size: 14px;
-            margin-top: 20px;
         }
 
-        .main-content {
-            margin-left: 260px;
-            flex: 1;
+        .chart-container {
+            background: white;
             padding: 30px;
-            overflow-x: auto;
-        }
-
-        .section {
+            border-radius: 10px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             margin-bottom: 30px;
-        }
-
-        .section h2 {
-            color: #68a469;
-            margin-bottom: 20px;
         }
 
         .welcome-message {
@@ -170,20 +92,11 @@
             border-radius: 10px;
             box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
-        }
-
-        .welcome-message h1 {
-            color: #4CAF50;
-            margin-bottom: 10px;
-        }
-
-        .welcome-message p {
-            color: #333;
-            font-size: 18px;
+            margin-top: 30px;
+            margin-bottom: 50px;
         }
     </style>
 </head>
-
 
 <body>
     <div class="container">
@@ -199,14 +112,68 @@
 
         <!-- Main Content Start -->
         <div class="main-content">
+
+
             <div class="welcome-message">
                 <h1>Welcome, Admin {{ admin_name }}</h1>
                 <p>You are logged in as an administrator.</p>
             </div>
+
+            <div class="section chart-container">
+                <h2>Top 5 Utility Providers (by Number of Users)</h2>
+                <canvas id="topProvidersChart"></canvas>
+            </div>
+
+
         </div>
         <!-- Main Content End -->
     </div>
-</body>
 
+    <script>
+        const providerNames = {{ top_providers | map(attribute = 'provider_name') | list | tojson }};
+        const providerUsers = {{ top_providers | map(attribute = 'num_users') | list | tojson }};
+
+        const ctx = document.getElementById('topProvidersChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: providerNames,
+                datasets: [{
+                    label: 'Number of Users',
+                    data: providerUsers,
+                    backgroundColor: 'rgba(106, 143, 106, 0.7)',
+                    borderColor: 'rgba(106, 143, 106, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Provider Name' },
+                        ticks: {
+                            maxRotation: 0,
+                            minRotation: 0,
+                            autoSkip: false,
+                            callback: function (value, index, ticks) {
+                                const label = this.getLabelForValue(value);
+                                return label.length > 20 ? label.substr(0, 20) + '...' : label;
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Number of Users' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                }
+            }
+        });
+    </script>
+
+</body>
 
 </html>
