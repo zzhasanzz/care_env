@@ -306,6 +306,35 @@ def view_providers():
 
     return render_template('view_providers.html', providers=providers)
 
+@app.route('/admin/view_vehicles')
+def view_vehicles():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    # Fetch all vehicles
+    cursor.execute("""
+        SELECT 
+        v.id,
+        v.model_name,
+        v.vehicle_type,
+        v.fuel_type,
+        v.urban_efficiency,
+        v.highway_efficiency,
+        v.daily_average_km,
+        v.description,
+        COUNT(uv.id) AS num_users
+    FROM vehicles v
+    LEFT JOIN user_vehicles uv ON v.id = uv.vehicle_id
+    GROUP BY v.id
+    ORDER BY num_users DESC, v.model_name ASC;
+
+    """)
+    vehicles = cursor.fetchall()
+    cursor.close()
+
+    return render_template('view_vehicles.html', vehicles=vehicles)
 
 
 
