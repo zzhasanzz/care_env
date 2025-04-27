@@ -1,36 +1,56 @@
 body {
     font-family: Arial, sans-serif;
-    margin: 20px;
+    margin: 0;
+    padding: 20px;
+    background-color: #f7f7f7;
 }
 
+/* Table Styling */
 table {
     width: 100%;
     border-collapse: collapse;
-}
-
-table, th, td {
-    border: 1px solid #ddd;
+    background-color: #ffffff;
+    box-shadow: 0px 2px 8px rgba(0,0,0,0.05);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 20px;
 }
 
 th, td {
-    padding: 8px;
-    text-align: left;
+    padding: 12px 15px;
+    text-align: center;
+    font-size: 14px;
+    border-bottom: 1px solid #ddd;
 }
 
 th {
-    background-color: #f4f4f4;
+    background-color: #e2eee2; /* soft sidebar green */
+    color: #4f7c4f; /* muted green for titles */
+    font-weight: bold;
 }
 
+/* Button Styling */
 .btn {
     display: inline-block;
-    padding: 5px 10px;
-    background-color: #4CAF50;
+    padding: 8px 16px;
+    background-color: #6a8f6a; /* muted green like sidebar */
     color: white;
     text-decoration: none;
-    border-radius: 5px;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: background-color 0.3s;
 }
 
+.btn:hover {
+    background-color: #4a6d4a; /* darker muted green on hover */
+}
+
+/* Special Button (e.g., Due Bills) */
 .btn.due {
-    background-color: red;
+    background-color: #c0392b; /* soft red, matching logout */
+}
+
+.btn.due:hover {
+    background-color: #a93226;
 }
 

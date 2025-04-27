@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,14 +16,16 @@
             background-color: #f7f7f7;
         }
 
+
         .container {
             display: flex;
             min-height: 100vh;
             overflow: hidden;
         }
 
+
         .sidebar {
-            width: 260px;
+            width: 220px;
             background-color: #e2eee2;
             padding: 20px;
             display: flex;
@@ -35,9 +38,11 @@
             box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
         }
 
+
         .sidebar-section {
             margin-bottom: 30px;
         }
+
 
         .sidebar-btn {
             display: block;
@@ -52,9 +57,11 @@
             transition: background-color 0.3s;
         }
 
+
         .sidebar-btn:hover {
             background-color: #4a6d4a;
         }
+
 
         .logout {
             text-align: center;
@@ -65,21 +72,32 @@
             font-size: 14px;
         }
 
+
         .main-content {
             margin-left: 260px;
             flex: 1;
             padding: 30px;
+            overflow-x: auto;
+            
         }
+
+        .main-content canvas {
+            width: 100% !important;
+            height: auto !important;
+        }
+
 
         .section {
             margin-bottom: 30px;
         }
+
 
         .section h2 {
             color: #68a469;
             margin-bottom: 15px;
             margin-left: 80px;
         }
+
 
         canvas {
             max-width: 100%;
@@ -123,6 +141,10 @@
         <div class="sidebar">
             <a href="{{ url_for('profile') }}" class="sidebar-btn">Profile</a>
             <a href="{{ url_for('update_user') }}" class="sidebar-btn">Update Info</a>
+            <a href="{{ url_for('view_electricity_bills') }}" class="sidebar-btn">View Electricity Bills</a>
+            <a href="{{ url_for('view_water_bills') }}" class="sidebar-btn">View Water Bills</a>
+            <a href="{{ url_for('view_gas_bills') }}" class="sidebar-btn">View Gas Bills</a>
+            <a href="{{ url_for('view_fuel_bills') }}" class="sidebar-btn">View Fuel Bills</a>
             <a href="{{ url_for('logout') }}" class="logout">Logout</a>
         </div>
         <!-- Sidebar End -->
@@ -167,14 +189,6 @@
             <div class="section">
                 <h2>Fuel Usage Histogram</h2>
                 <canvas id="fuelHistogramChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Bills</h2>
-                <a href="{{ url_for('view_electricity_bills') }}" class="btn">View Electricity Bills</a>
-                <a href="{{ url_for('view_water_bills') }}" class="btn">View Water Bills</a>
-                <a href="{{ url_for('view_gas_bills') }}" class="btn">View Gas Bills</a>
-                <a href="{{ url_for('view_fuel_bills') }}" class="btn">View Fuel Bills</a>
             </div>
 
             <div class="section">
