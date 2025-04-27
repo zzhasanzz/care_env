@@ -178,7 +178,7 @@ def admin_dashboard():
 
     cursor = db.cursor(MySQLdb.cursors.DictCursor)
 
-    # Fetch top 5 utility providers based on number of users
+    # Fetch top 5 utility providers
     cursor.execute("""
         SELECT 
             up.provider_name,
@@ -192,7 +192,25 @@ def admin_dashboard():
     """)
     top_providers = cursor.fetchall()
 
-    return render_template('admin_dashboard.html', admin_name=session.get('display_name'), top_providers=top_providers)
+    #  Fetch top 5 users with highest total carbon emissions
+    cursor.execute("""
+        SELECT 
+            u.display_name,
+            IFNULL(SUM(dc.total_emission_kg), 0) AS total_emission
+        FROM user u
+        LEFT JOIN daily_carbon_footprint dc ON u.id = dc.user_id
+        GROUP BY u.id
+        ORDER BY total_emission DESC
+        LIMIT 5
+    """)
+    top_users = cursor.fetchall()
+
+    cursor.close()
+
+    return render_template('admin_dashboard.html', 
+                            admin_name=session.get('display_name'), 
+                            top_providers=top_providers,
+                            top_users=top_users)  # ✅ Pass it to template!
 
 
 @app.route('/admin_profile')

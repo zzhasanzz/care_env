@@ -92,8 +92,22 @@
             border-radius: 10px;
             box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
             text-align: center;
-            margin-top: 30px;
             margin-bottom: 50px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #6a8f6a;
+        }
+
+        .charts-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .chart-container {
+            flex: 1 1 500px;
+            max-width: 600px;
         }
     </style>
 </head>
@@ -117,15 +131,23 @@
 
 
             <div class="welcome-message">
-                <h1>Welcome, Admin {{ admin_name }}</h1>
+                <h1>Welcome</h1>
                 <p>You are logged in as an administrator.</p>
             </div>
 
-            <div class="section chart-container">
-                <h2>Top 5 Utility Providers (by Number of Users)</h2>
-                <canvas id="topProvidersChart"></canvas>
-            </div>
+            <div class="section" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
 
+                <div class="chart-container" style="flex: 1 1 500px; max-width: 600px;">
+                    <h2>Top 5 Utility Providers (by Number of Users)</h2>
+                    <canvas id="topProvidersChart"></canvas>
+                </div>
+
+                <div class="chart-container" style="flex: 1 1 500px; max-width: 600px;">
+                    <h2>Top 5 Users (by Total Carbon Emission)</h2>
+                    <canvas id="topUsersChart"></canvas>
+                </div>
+
+            </div>
 
         </div>
         <!-- Main Content End -->
@@ -175,6 +197,52 @@
             }
         });
     </script>
+
+    <script>
+        const userNames = {{ top_users | map(attribute = 'display_name') | list | tojson }};
+        const userEmissions = {{ top_users | map(attribute = 'total_emission') | list | tojson }};
+
+        const ctx2 = document.getElementById('topUsersChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: userNames,
+                datasets: [{
+                    label: 'Total Carbon Emission (kg)',
+                    data: userEmissions,
+                    borderColor: 'rgba(255, 205, 86, 1)',
+                    backgroundColor: 'rgba(255, 205, 86, 0.2)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        title: { display: true, text: 'User Name' },
+                        ticks: {
+                            maxRotation: 0,
+                            minRotation: 0,
+                            autoSkip: false,
+                            callback: function (value, index, ticks) {
+                                const label = this.getLabelForValue(value);
+                                return label.length > 20 ? label.substr(0, 20) + '...' : label;
+                            }
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        title: { display: true, text: 'Total Carbon Emission (kg)' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: true }
+                }
+            }
+        });
+    </script>
+
 
 </body>
 
