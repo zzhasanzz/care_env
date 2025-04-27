@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
     <style>
         body {
+            background: url('{{ url_for('static', filename='bg.png') }}') center center / cover no-repeat fixed;
             font-family: Arial, sans-serif;
             margin: 0;
             background-color: #f7f7f7;
@@ -111,11 +112,24 @@
             font-size: 14px;
             margin-top: 20px;
         }
+        .logo-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .logo-image {
+        width: 200px;
+        height: auto;
+    }
     </style>
 </head>
 
 <body>
     <div class="sidebar">
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-image">
+        </div>        
+        <a href="{{ url_for('admin_dashboard') }}" class="sidebar-btn">Dashboard</a>
         <a href="{{ url_for('admin_profile') }}" class="sidebar-btn">Profile</a>
         <a href="{{ url_for('user_details') }}" class="sidebar-btn">User Details</a>
         <a href="{{ url_for('view_providers') }}" class="sidebar-btn">View Utility Providers</a>
@@ -125,7 +139,7 @@
         <a href="{{ url_for('logout') }}" class="logout">Logout</a>
     </div>
 
-    <div class="container">
+    <div class="container" >
         {% if request.args.get('success') == '1' %}
         <div
             style="background-color: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
@@ -133,7 +147,7 @@
         </div>
         {% endif %}
 
-        <div class="form-section">
+        <div class="form-section"  style="background: rgba(255, 255, 255, 0.8); border-radius: 10px; padding: 40px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
             <h2>Add New Vehicle</h2>
             <form method="POST">
                 <div class="form-group">

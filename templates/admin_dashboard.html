@@ -11,7 +11,13 @@
             font-family: Arial, sans-serif;
             margin: 0;
             background-color: #f7f7f7;
+            background: url('{{ url_for('static', filename='bg.png') }}') center center / cover no-repeat fixed;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
         }
+
 
         .container {
             display: flex;
@@ -109,6 +115,15 @@
             flex: 1 1 500px;
             max-width: 600px;
         }
+        .logo-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .logo-image {
+        width: 200px; 
+        height: auto;
+    }
     </style>
 </head>
 
@@ -116,6 +131,10 @@
     <div class="container">
         <!-- Sidebar Start -->
         <div class="sidebar">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-image">
+            </div>            
+            <a href="{{ url_for('admin_dashboard') }}" class="sidebar-btn">Dashboard</a>
             <a href="{{ url_for('admin_profile') }}" class="sidebar-btn">Profile</a>
             <a href="{{ url_for('user_details') }}" class="sidebar-btn">User Details</a>
             <a href="{{ url_for('view_providers') }}" class="sidebar-btn">View Utility Providers</a>
@@ -130,27 +149,33 @@
         <div class="main-content">
 
 
-            <div class="welcome-message">
+            <div class="welcome-message"
+                style="background: rgba(255, 255, 255, 0.8); border-radius: 10px; padding: 40px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
                 <h1>Welcome</h1>
                 <p>You are logged in as an administrator.</p>
             </div>
 
             <div class="section" style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
 
-                <div class="chart-container" style="flex: 1 1 500px; max-width: 600px;">
+                <div class="chart-container"
+                    style="flex: 1 1 500px; max-width: 600px; background: rgba(255, 255, 255, 0.8); border-radius: 10px; padding: 30px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
                     <h2>Top 5 Utility Providers (by Number of Users)</h2>
                     <canvas id="topProvidersChart"></canvas>
                 </div>
 
-                <div class="chart-container" style="flex: 1 1 500px; max-width: 600px;">
+                <div class="chart-container"
+                    style="flex: 1 1 500px; max-width: 600px; background: rgba(255, 255, 255, 0.8); border-radius: 10px; padding: 30px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
                     <h2>Top 5 Users (by Total Carbon Emission)</h2>
                     <canvas id="topUsersChart"></canvas>
                 </div>
 
             </div>
 
+
         </div>
-        <!-- Main Content End -->
+
+    </div>
+    <!-- Main Content End -->
     </div>
 
     <script>
