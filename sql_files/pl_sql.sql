@@ -193,4 +193,36 @@ END;
 
 DELIMITER ;
 
+DROP PROCEDURE IF EXISTS InsertGasConsumption;
 
+
+DELIMITER //
+
+CREATE PROCEDURE InsertGasConsumption(
+    IN p_user_id INT,
+    IN p_consumption_date DATE,
+    IN p_gas_used FLOAT,
+    IN p_gas_cost FLOAT,
+    IN p_household_type VARCHAR(50),
+    IN p_burner_type VARCHAR(10),
+    IN p_num_members INT
+)
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM daily_gas_consumption 
+        WHERE user_id = p_user_id AND consumption_date = p_consumption_date
+    ) THEN
+        INSERT INTO daily_gas_consumption (
+            user_id, consumption_date,
+            gas_used_cubic_meters, gas_cost,
+            household_type, burner_type, num_members
+        )
+        VALUES (
+            p_user_id, p_consumption_date,
+            p_gas_used, p_gas_cost,
+            p_household_type, p_burner_type, p_num_members
+        );
+    END IF;
+END //
+
+DELIMITER ;
