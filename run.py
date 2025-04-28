@@ -13,6 +13,7 @@ import io
 import base64
 from flask import flash
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask import jsonify
 
 
 
@@ -623,7 +624,6 @@ def dashboard():
     """, (user_id,))
     car_list = [car['model_name'] for car in cursor.fetchall()]
 
-    cursor.close()
 
     # Combine all data
     user_info = {
@@ -674,6 +674,19 @@ def dashboard():
         'cars': car_list,
     }
 
+    # Fetch wallet balance
+    cursor.execute("""
+        SELECT balance 
+        FROM user_wallet 
+        WHERE user_id = %s
+    """, (user_id,))
+    wallet_balance = cursor.fetchone()
+    
+    # Default to 0 if no wallet exists
+    balance = wallet_balance['balance'] if wallet_balance else 0.00
+
+    cursor.close()
+
     # Save into session ✅
     session['user_info'] = user_info
 
@@ -694,6 +707,7 @@ def dashboard():
         reduction_suggestions=reduction_suggestions,
         monthly_carbon_detailed_data=monthly_carbon_detailed_data,
         safe_limits=safe_limits,
+        wallet_balance=balance,
     )
 
 
@@ -907,7 +921,7 @@ def update_user():
                            user=user,
                            user_vehicles=user_vehicles,
                            housing=housing_data,
-                           wallet=wallet)
+                           wallet=wallet,)
 
 
 
@@ -1180,6 +1194,384 @@ def view_gas_bill_detail(month, year):
     gas_bill_details = cursor.fetchall()
 
     return render_template('gas_bill_detail.html', gas_bill_details=gas_bill_details, month=month, year=year)
+
+
+@app.route('/pay_electricity_bill', methods=['POST'])
+@login_required
+def pay_electricity_bill():
+    data = request.get_json()
+    month = data['month']
+    year = data['year']
+    password = data['password']
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    try:
+        # 1. Verify wallet password
+        cursor.execute("""
+            SELECT password_hash 
+            FROM user_wallet_auth 
+            WHERE user_id = %s
+        """, (user_id,))
+        wallet_auth = cursor.fetchone()
+        
+        if not wallet_auth or not check_password_hash(wallet_auth['password_hash'], password):
+            return jsonify({'success': False, 'error': 'Invalid wallet password'})
+        
+        # 2. Get bill amount and provider_id
+        cursor.execute("""
+            SELECT 
+                SUM(daily_bill) AS total_amount,
+                MAX(utility_provider_id) AS provider_id -- Assuming all bills in a month belong to same provider
+            FROM daily_electricity_consumption
+            WHERE user_id = %s
+            AND MONTH(consumption_date) = %s
+            AND YEAR(consumption_date) = %s
+            AND payment_status = 'due'
+        """, (user_id, month, year))
+        bill = cursor.fetchone()
+        amount = bill['total_amount'] if bill else 0
+        provider_id = bill['provider_id'] if bill else None
+        
+        if amount <= 0:
+            return jsonify({'success': False, 'error': 'No unpaid bills found for this period'})
+        
+        # 3. Check wallet balance
+        cursor.execute("SELECT balance FROM user_wallet WHERE user_id = %s", (user_id,))
+        wallet = cursor.fetchone()
+        
+        if not wallet or wallet['balance'] < amount:
+            return jsonify({'success': False, 'error': 'Insufficient balance'})
+        
+        # 4. Deduct from wallet
+        cursor.execute("""
+            UPDATE user_wallet 
+            SET balance = balance - %s 
+            WHERE user_id = %s
+        """, (amount, user_id))
+        
+        # 5. Mark bills as paid
+        cursor.execute("""
+            UPDATE daily_electricity_consumption
+            SET payment_status = 'paid'
+            WHERE user_id = %s
+            AND MONTH(consumption_date) = %s
+            AND YEAR(consumption_date) = %s
+        """, (user_id, month, year))
+        
+        # 6. Record transaction
+        cursor.execute("""
+            INSERT INTO transactions (
+                user_id, 
+                provider_id, 
+                amount, 
+                transaction_type, 
+                utility_type, 
+                reference_id,
+                description
+            )
+            VALUES (%s, %s, %s, 'payment', 'electricity', %s, 'Electricity bill payment')
+        """, (user_id, provider_id, -amount, f"{year}-{month}"))
+        
+        db.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cursor.close()
+
+
+@app.route('/pay_water_bill', methods=['POST'])
+@login_required
+def pay_water_bill():
+    data = request.get_json()
+    month = data['month']
+    year = data['year']
+    password = data['password']
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    try:
+        # 1. Verify wallet password
+        cursor.execute("""
+            SELECT password_hash 
+            FROM user_wallet_auth 
+            WHERE user_id = %s
+        """, (user_id,))
+        wallet_auth = cursor.fetchone()
+        
+        if not wallet_auth or not check_password_hash(wallet_auth['password_hash'], password):
+            return jsonify({'success': False, 'error': 'Invalid wallet password'})
+        
+        # 2. Get bill amount and provider_id
+        cursor.execute("""
+            SELECT 
+                SUM(daily_bill) AS total_amount,
+                MAX(utility_provider_id) AS provider_id -- Assuming all bills in a month belong to same provider
+            FROM daily_water_consumption
+            WHERE user_id = %s
+            AND MONTH(consumption_date) = %s
+            AND YEAR(consumption_date) = %s
+            AND payment_status = 'due'
+        """, (user_id, month, year))
+        bill = cursor.fetchone()
+        amount = bill['total_amount'] if bill else 0
+        provider_id = bill['provider_id'] if bill else None
+        
+        if amount <= 0:
+            return jsonify({'success': False, 'error': 'No unpaid bills found for this period'})
+        
+        # 3. Check wallet balance
+        cursor.execute("SELECT balance FROM user_wallet WHERE user_id = %s", (user_id,))
+        wallet = cursor.fetchone()
+        
+        if not wallet or wallet['balance'] < amount:
+            return jsonify({'success': False, 'error': 'Insufficient balance'})
+        
+        # 4. Deduct from wallet
+        cursor.execute("""
+            UPDATE user_wallet 
+            SET balance = balance - %s 
+            WHERE user_id = %s
+        """, (amount, user_id))
+        
+        # 5. Mark bills as paid
+        cursor.execute("""
+            UPDATE daily_water_consumption
+            SET payment_status = 'paid'
+            WHERE user_id = %s
+            AND MONTH(consumption_date) = %s
+            AND YEAR(consumption_date) = %s
+        """, (user_id, month, year))
+        
+        # 6. Record transaction
+        cursor.execute("""
+            INSERT INTO transactions (
+                user_id, 
+                provider_id, 
+                amount, 
+                transaction_type, 
+                utility_type, 
+                reference_id,
+                description
+            )
+            VALUES (%s, %s, %s, 'payment', 'water', %s, 'Water bill payment')
+        """, (user_id, provider_id, -amount, f"{year}-{month}"))
+        
+        db.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cursor.close()
+
+
+@app.route('/pay_gas_bill', methods=['POST'])
+@login_required
+def pay_gas_bill():
+    data = request.get_json()
+    month = data['month']
+    year = data['year']
+    password = data['password']
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return "User not found.", 404
+
+    user_id = user['id']
+
+    try:
+        # 1. Verify wallet password
+        cursor.execute("""
+            SELECT password_hash 
+            FROM user_wallet_auth 
+            WHERE user_id = %s
+        """, (user_id,))
+        wallet_auth = cursor.fetchone()
+        
+        if not wallet_auth or not check_password_hash(wallet_auth['password_hash'], password):
+            return jsonify({'success': False, 'error': 'Invalid wallet password'})
+        
+        # 2. Get bill amount and provider_id
+        cursor.execute("""
+            SELECT 
+                SUM(gas_cost) AS total_amount,
+                MAX(utility_provider_id) AS provider_id -- Assuming all bills in a month belong to same provider
+            FROM daily_gas_consumption
+            WHERE user_id = %s
+            AND MONTH(consumption_date) = %s
+            AND YEAR(consumption_date) = %s
+            AND payment_status = 'due'
+        """, (user_id, month, year))
+        bill = cursor.fetchone()
+        amount = bill['total_amount'] if bill else 0
+        provider_id = bill['provider_id'] if bill else None
+        
+        if amount <= 0:
+            return jsonify({'success': False, 'error': 'No unpaid bills found for this period'})
+        
+        # 3. Check wallet balance
+        cursor.execute("SELECT balance FROM user_wallet WHERE user_id = %s", (user_id,))
+        wallet = cursor.fetchone()
+        
+        if not wallet or wallet['balance'] < amount:
+            return jsonify({'success': False, 'error': 'Insufficient balance'})
+        
+        # 4. Deduct from wallet
+        cursor.execute("""
+            UPDATE user_wallet 
+            SET balance = balance - %s 
+            WHERE user_id = %s
+        """, (amount, user_id))
+        
+        # 5. Mark bills as paid
+        cursor.execute("""
+            UPDATE daily_gas_consumption
+            SET payment_status = 'paid'
+            WHERE user_id = %s
+            AND MONTH(consumption_date) = %s
+            AND YEAR(consumption_date) = %s
+        """, (user_id, month, year))
+        
+        # 6. Record transaction
+        cursor.execute("""
+            INSERT INTO transactions (
+                user_id, 
+                provider_id, 
+                amount, 
+                transaction_type, 
+                utility_type, 
+                reference_id,
+                description
+            )
+            VALUES (%s, %s, %s, 'payment', 'gas', %s, 'Gas bill payment')
+        """, (user_id, provider_id, -amount, f"{year}-{month}"))
+        
+        db.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cursor.close()
+
+
+@app.route('/pay_fuel_bill', methods=['POST'])
+@login_required
+def pay_fuel_bill():
+    data = request.get_json()
+    month = data['month']
+    year = data['year']
+    password = data['password']
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+    cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+    user = cursor.fetchone()
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found'}), 404
+
+    user_id = user['id']
+
+    try:
+        # 1. Verify wallet password
+        cursor.execute("""
+            SELECT password_hash 
+            FROM user_wallet_auth 
+            WHERE user_id = %s
+        """, (user_id,))
+        wallet_auth = cursor.fetchone()
+        
+        if not wallet_auth or not check_password_hash(wallet_auth['password_hash'], password):
+            return jsonify({'success': False, 'error': 'Invalid wallet password'})
+        
+        # 2. Get bill amount (fuel doesn't have provider_id like utilities)
+        cursor.execute("""
+            SELECT 
+                SUM(fuel_cost) AS total_amount
+            FROM daily_fuel_consumption
+            WHERE user_id = %s
+            AND MONTH(consumption_date) = %s
+            AND YEAR(consumption_date) = %s
+            AND payment_status = 'due'
+        """, (user_id, month, year))
+        bill = cursor.fetchone()
+        amount = bill['total_amount'] if bill and bill['total_amount'] else 0
+        
+        if amount <= 0:
+            return jsonify({'success': False, 'error': 'No unpaid fuel bills found for this period'})
+        
+        # 3. Check wallet balance
+        cursor.execute("SELECT balance FROM user_wallet WHERE user_id = %s", (user_id,))
+        wallet = cursor.fetchone()
+        
+        if not wallet or wallet['balance'] < amount:
+            return jsonify({'success': False, 'error': 'Insufficient balance'})
+        
+        # 4. Deduct from wallet
+        cursor.execute("""
+            UPDATE user_wallet 
+            SET balance = balance - %s 
+            WHERE user_id = %s
+        """, (amount, user_id))
+        
+        # 5. Mark fuel bills as paid
+        cursor.execute("""
+            UPDATE daily_fuel_consumption
+            SET payment_status = 'paid'
+            WHERE user_id = %s
+            AND MONTH(consumption_date) = %s
+            AND YEAR(consumption_date) = %s
+            AND payment_status = 'due'
+        """, (user_id, month, year))
+        
+        # 6. Record transaction (no provider_id for fuel)
+        cursor.execute("""
+            INSERT INTO transactions (
+                user_id, 
+                amount, 
+                transaction_type, 
+                utility_type, 
+                reference_id,
+                description
+            )
+            VALUES (%s, %s, 'payment', 'fuel', %s, 'Fuel bill payment')
+        """, (user_id, -amount, f"{year}-{month}"))
+        
+        db.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+    finally:
+        cursor.close()
 
 @app.route('/logout')
 def logout():

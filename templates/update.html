@@ -379,30 +379,102 @@
             this.querySelector('button[type="submit"]').disabled = true;
         });
 
+        function loadProviders() {
+            try {
+                const division = document.getElementById('division').value;
+                console.log('Loading providers for division:', division);
+
+                if (!division) {
+                    console.log('No division selected - skipping provider load');
+                    return;
+                }
+
+                // Get all provider select elements
+                const electricitySelect = document.getElementById('electricity_provider');
+                const waterSelect = document.getElementById('water_provider');
+                const gasSelect = document.getElementById('gas_provider');
+
+                if (!electricitySelect || !waterSelect || !gasSelect) {
+                    throw new Error('Could not find all provider select elements');
+                }
+
+                // Clear existing options (keep first "Select provider" option)
+                [electricitySelect, waterSelect, gasSelect].forEach(select => {
+                    while (select.options.length > 1) {
+                        select.remove(1);
+                    }
+                });
+
+                fetch(`/get_providers/${encodeURIComponent(division)}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`Server returned ${response.status} status`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (!data || !data.providers) {
+                            throw new Error('Invalid response format from server');
+                        }
+
+                        console.log('Received providers data:', data.providers);
+
+                        // Process each provider
+                        data.providers.forEach(provider => {
+                            const option = new Option(provider.provider_name, provider.id);
+
+                            switch (provider.energy_type) {
+                                case 'electricity':
+                                    electricitySelect.add(option);
+                                    break;
+                                case 'water':
+                                    waterSelect.add(option);
+                                    break;
+                                case 'gas':
+                                    gasSelect.add(option);
+                                    break;
+                                default:
+                                    console.warn('Unknown provider type:', provider.energy_type);
+                            }
+                        });
+
+                        // Set selected values if they exist in user data
+                        if ("{{ user.electricity_provider }}") {
+                            electricitySelect.value = "{{ user.electricity_provider }}";
+                        }
+                        if ("{{ user.water_provider }}") {
+                            waterSelect.value = "{{ user.water_provider }}";
+                        }
+                        if ("{{ user.gas_provider }}") {
+                            gasSelect.value = "{{ user.gas_provider }}";
+                        }
+
+                    })
+                    .catch(error => {
+                        console.error('Error loading providers:', error);
+                        alert('Error loading utility providers. Please try again later.');
+                    });
+
+            } catch (error) {
+                console.error('Error in loadProviders function:', error);
+                alert('An unexpected error occurred while loading providers.');
+            }
+        }
+
+
         window.onload = function () {
             let vehicleCounter = 0;
             const deletedIds = new Set();
 
-            function loadProviders() {
-                const division = document.getElementById('division').value;
-                fetch(`/get_providers/${division}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        ['electricity_provider', 'water_provider', 'gas_provider'].forEach(type => {
-                            const select = document.getElementById(type);
-                            select.innerHTML = '<option value="" disabled selected>Select provider</option>';
-                        });
-                        data.providers.forEach(provider => {
-                            const option = document.createElement('option');
-                            option.value = provider.id;
-                            option.textContent = provider.provider_name;
-                            if (provider.energy_type === 'electricity') document.getElementById('electricity_provider').appendChild(option);
-                            else if (provider.energy_type === 'water') document.getElementById('water_provider').appendChild(option);
-                            else if (provider.energy_type === 'gas') document.getElementById('gas_provider').appendChild(option);
-                        });
-                    })
-                    .catch(err => console.error('Error loading providers:', err));
+            // Load providers if division is already selected
+            if (document.getElementById('division').value) {
+                loadProviders();
             }
+
+            // Add current provider values to select elements (for form submission)
+            document.getElementById('electricity_provider').dataset.current = "{{ user.electricity_provider }}";
+            document.getElementById('water_provider').dataset.current = "{{ user.water_provider }}";
+            document.getElementById('gas_provider').dataset.current = "{{ user.gas_provider }}";
 
             function searchCars() {
                 const query = document.getElementById('car_search').value;
@@ -476,7 +548,8 @@
 
             // Initialize existing vehicles
             {% if user_vehicles %}
-            const userVehicles = {{ user_vehicles| tojson}};
+            const userVehicles = {{ user_vehicles| tojson
+        }};
 
         userVehicles.forEach(v => {
             addCarToTable(

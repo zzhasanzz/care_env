@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Monthly Water Bills</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
@@ -31,8 +32,7 @@
                        class="btn btn-view">View Bill</a>
                     
                     {% if bill.payment_status != 'paid' %}
-                        <a href="#" 
-                           class="btn due">Pay </a>
+                        <a href="#" class="btn due">Pay</a>
                     {% else %}
                         <button class="btn paid" disabled>Paid</button>
                     {% endif %}
@@ -41,6 +41,90 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Payment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Bill Amount: <span id="billAmount">0.00</span> Tk</p>
+                    <form id="paymentForm">
+                        <div class="mb-3">
+                            <label for="walletPassword" class="form-label">Wallet Password</label>
+                            <input type="password" class="form-control" id="walletPassword" required>
+                        </div>
+                        <input type="hidden" id="billMonth">
+                        <input type="hidden" id="billYear">
+                        <button type="submit" class="btn btn-primary">Confirm Payment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <p><a href="{{ url_for('dashboard') }}">Back to Dashboard</a></p>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" 
+        integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" 
+        crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const paymentModal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            
+            // Set up pay buttons
+            document.querySelectorAll('.btn.due').forEach(button => {
+                button.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const row = this.closest('tr');
+                    const month = row.querySelector('td:nth-child(1)').textContent;
+                    const year = row.querySelector('td:nth-child(2)').textContent;
+                    const amount = row.querySelector('td:nth-child(4)').textContent;
+                    
+                    document.getElementById('billAmount').textContent = amount;
+                    document.getElementById('billMonth').value = month;
+                    document.getElementById('billYear').value = year;
+                    
+                    paymentModal.show();
+                });
+            });
+
+            // Handle form submission
+            document.getElementById('paymentForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const password = document.getElementById('walletPassword').value;
+                const month = document.getElementById('billMonth').value;
+                const year = document.getElementById('billYear').value;
+                
+                fetch('/pay_water_bill', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        month: month,
+                        year: year,
+                        password: password
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Payment successful!');
+                        window.location.reload();
+                    } else {
+                        alert('Payment failed: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred during payment');
+                });
+            });
+        });
+    </script>
 </body>
 </html>
