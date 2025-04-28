@@ -227,14 +227,22 @@ def log_daily_consumption(user_id, utility_provider_id, date, units_consumed):
     cursor = conn.cursor()
 
     try:
-        cursor.callproc('InsertElectricityConsumption', (user_id, utility_provider_id, date, units_consumed))
-        print(f"✅ Inserted or Skipped: {user_id} on {date} - {units_consumed} kWh")
+        today = datetime.date.today()
+        # If the date is in the current month or previous month → due
+        if (date.year == today.year and date.month >= today.month - 1) or (date.year == today.year and today.month == 1 and date.month == 12):
+            payment_status = 'due'
+        else:
+            payment_status = 'paid'
+
+        cursor.callproc('InsertElectricityConsumption', (user_id, utility_provider_id, date, units_consumed, payment_status))
+        print(f"✅ Inserted or Skipped: {user_id} on {date} - {units_consumed} kWh - Status: {payment_status}")
     except Exception as e:
         print(f"❌ Error inserting for {user_id} on {date}: {str(e)}")
 
     conn.commit()
     cursor.close()
     conn.close()
+
 
 def calculate_bill(total_units, base_rate, multipliers, tiers, service_charge=10, demand_charge=30, meter_rent=10, vat_rate=0.05):
     rates = [base_rate * m for m in multipliers]

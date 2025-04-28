@@ -152,8 +152,22 @@ def log_daily_consumption(user_id, vehicle_id, user_vehicle_id, date_obj, fuel_u
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        # Determine payment status
+        today = date.today()
+        if (date_obj.year == today.year and date_obj.month >= today.month - 1) or (date_obj.year == today.year and today.month == 1 and date_obj.month == 12):
+            payment_status = 'due'
+        else:
+            payment_status = 'paid'
+
         cursor.callproc('InsertFuelConsumption', (
-            user_id, vehicle_id, user_vehicle_id, date_obj, fuel_used, fuel_price, driving_condition
+            user_id,
+            vehicle_id,
+            user_vehicle_id,
+            date_obj,
+            fuel_used,
+            fuel_price,
+            driving_condition,
+            payment_status  # 🆕 Added here
         ))
 
         conn.commit()
@@ -167,6 +181,7 @@ def log_daily_consumption(user_id, vehicle_id, user_vehicle_id, date_obj, fuel_u
     finally:
         if conn:
             conn.close()
+
 
 def get_simulation_date_ranges():
     today = date.today()

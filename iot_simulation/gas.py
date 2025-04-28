@@ -43,21 +43,24 @@ def fetch_all_users_gas_info():
     cursor = conn.cursor(MySQLdb.cursors.DictCursor)
     
     cursor.execute("""
-        SELECT u.id, u.gas_type, uh.num_members 
+        SELECT u.id, u.gas_type, u.gas_provider, uh.num_members
         FROM user u
         LEFT JOIN user_housing uh ON u.id = uh.user_id
         WHERE u.gas_provider IS NOT NULL
     """)
+
     
     users = cursor.fetchall()
     cursor.close()
     conn.close()
     return users
 
-def log_daily_gas_consumption(user_id, date_obj, gas_used, gas_cost, household_type, burner_type=None, num_members=None):
-    conn = get_db_connection()
-    cursor = conn.cursor()
+def log_daily_gas_consumption(user_id, utility_provider_id, date_obj, gas_used, gas_cost, household_type, burner_type=None, num_members=None):
+    conn = None
     try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
         # Check if record already exists
         cursor.execute("""
             SELECT 1 FROM daily_gas_consumption 
@@ -65,13 +68,12 @@ def log_daily_gas_consumption(user_id, date_obj, gas_used, gas_cost, household_t
         """, (user_id, date_obj))
         
         if cursor.fetchone():
-            cursor.close()
-            conn.close()
             return False  # Already logged
 
-        # Call the stored procedure instead of manual INSERT
+        # Call the updated stored procedure with utility_provider_id
         cursor.callproc('InsertGasConsumption', (
             user_id,
+            utility_provider_id,
             date_obj,
             gas_used,
             gas_cost,
@@ -79,21 +81,29 @@ def log_daily_gas_consumption(user_id, date_obj, gas_used, gas_cost, household_t
             burner_type,
             num_members
         ))
-        
-        # Always fetch all results after callproc to avoid sync errors
-        for _ in cursor.fetchall():
+
+        # Always fetch all results after callproc
+        while cursor.nextset():
             pass
 
         conn.commit()
         return True
 
-    except MySQLdb.Error as err:
-        print(f"❌ Error calling InsertGasConsumption: {err}")
-        conn.rollback()
+    except MySQLdb.OperationalError as e:
+        print(f"❌ MySQL Operational Error: {e}")
+        return False
+    except MySQLdb.Error as e:
+        print(f"❌ General MySQL Error: {e}")
+        if conn:
+            conn.rollback()
         return False
     finally:
-        cursor.close()
-        conn.close()
+        if conn:
+            try:
+                conn.close()
+            except Exception as close_err:
+                print(f"⚡ Error closing connection: {close_err}")
+
 
 def simulate_and_log_all_users_gas():
     users = fetch_all_users_gas_info()
@@ -108,16 +118,25 @@ def simulate_and_log_all_users_gas():
         user_id = user['id']
         raw_household_type = user['gas_type'] or "metered"  # fallback if null
         num_members = user['num_members'] if user['num_members'] else 4
+        utility_provider_id = user['gas_provider']
         
         # Normalize gas type
         household_type = raw_household_type.strip().lower().replace("-", "_")
         
         for single_date in (start_date + timedelta(n) for n in range((end_date - start_date).days + 1)):
-            
+        
             if household_type == "metered":
                 daily_usage = simulate_metered_daily_gas_consumption(num_members)
                 daily_cost = daily_usage * METERED_GAS_PRICE
-                log_daily_gas_consumption(user_id, single_date, daily_usage, daily_cost, "metered", num_members=num_members)
+                log_daily_gas_consumption(
+                    user_id,
+                    utility_provider_id,
+                    single_date,
+                    daily_usage,
+                    daily_cost,
+                    "metered",
+                    num_members=num_members
+                )
             
             elif household_type == "non_metered":
                 burner_type = np.random.choice(["double", "single"], p=[0.9, 0.1])
@@ -129,8 +148,16 @@ def simulate_and_log_all_users_gas():
                 else:
                     daily_usage = NON_METERED_DOUBLE_BURNER_MONTHLY / days_in_month
                     daily_cost = DOUBLE_BURNER_RATE / days_in_month
-                
-                log_daily_gas_consumption(user_id, single_date, daily_usage, daily_cost, "non_metered", burner_type=burner_type)
+
+                log_daily_gas_consumption(
+                    user_id,
+                    utility_provider_id,
+                    single_date,
+                    daily_usage,
+                    daily_cost,
+                    "non_metered",
+                    burner_type=burner_type
+                )
             
             else:
                 print(f"Unknown gas type for user {user_id}: {raw_household_type} - skipping")

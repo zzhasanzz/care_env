@@ -1,3 +1,4 @@
+-- Updated procedure
 DROP PROCEDURE IF EXISTS InsertElectricityConsumption;
 
 DELIMITER //
@@ -6,7 +7,8 @@ CREATE PROCEDURE InsertElectricityConsumption(
     IN p_user_id INT,
     IN p_utility_provider_id INT,
     IN p_consumption_date DATE,
-    IN p_units_consumed FLOAT
+    IN p_units_consumed FLOAT,
+    IN p_payment_status VARCHAR(10) -- New parameter for payment status
 )
 BEGIN
     DECLARE base_rate FLOAT;
@@ -34,10 +36,7 @@ BEGIN
     WHERE user_id = p_user_id
       AND consumption_date = p_consumption_date;
 
-    -- If already exists, then do nothing
     IF record_exists = 0 THEN
-
-        -- Calculate electricity bill
         SELECT unit_price INTO base_rate
         FROM utility_providers
         WHERE id = p_utility_provider_id;
@@ -49,22 +48,18 @@ BEGIN
             SET total = total + LEAST(remaining, 75) * (base_rate * m1);
             SET remaining = remaining - LEAST(remaining, 75);
         END IF;
-
         IF remaining > 0 THEN
             SET total = total + LEAST(remaining, 125) * (base_rate * m2);
             SET remaining = remaining - LEAST(remaining, 125);
         END IF;
-
         IF remaining > 0 THEN
             SET total = total + LEAST(remaining, 100) * (base_rate * m3);
             SET remaining = remaining - LEAST(remaining, 100);
         END IF;
-
         IF remaining > 0 THEN
             SET total = total + LEAST(remaining, 200) * (base_rate * m4);
             SET remaining = remaining - LEAST(remaining, 200);
         END IF;
-
         IF remaining > 0 THEN
             SET total = total + remaining * (base_rate * m5);
         END IF;
@@ -73,20 +68,21 @@ BEGIN
         SET vat = subtotal * vat_rate;
         SET final_bill = subtotal + vat;
 
-        -- Insert if not already exists
         INSERT INTO daily_electricity_consumption (
             user_id,
             utility_provider_id,
             consumption_date,
             units_consumed,
-            daily_bill
+            daily_bill,
+            payment_status -- Insert status
         )
         VALUES (
             p_user_id,
             p_utility_provider_id,
             p_consumption_date,
             p_units_consumed,
-            final_bill
+            final_bill,
+            p_payment_status
         );
     END IF;
 END //
@@ -105,20 +101,19 @@ CREATE PROCEDURE InsertFuelConsumption(
     IN p_consumption_date DATE,
     IN p_fuel_used FLOAT,
     IN p_fuel_price FLOAT,
-    IN p_driving_condition VARCHAR(20)
+    IN p_driving_condition VARCHAR(20),
+    IN p_payment_status ENUM('due', 'paid')
 )
 BEGIN
     DECLARE existing_record INT DEFAULT 0;
     DECLARE total_cost FLOAT;
 
-    -- Check if already exists
     SELECT COUNT(*) INTO existing_record
     FROM daily_fuel_consumption
     WHERE user_id = p_user_id
       AND user_vehicle_id = p_user_vehicle_id
       AND consumption_date = p_consumption_date;
 
-    -- Insert only if not existing
     IF existing_record = 0 THEN
         SET total_cost = p_fuel_used * p_fuel_price;
 
@@ -129,7 +124,8 @@ BEGIN
             consumption_date,
             fuel_used_liters,
             fuel_cost,
-            driving_condition
+            driving_condition,
+            payment_status  
         )
         VALUES (
             p_user_id,
@@ -138,13 +134,13 @@ BEGIN
             p_consumption_date,
             p_fuel_used,
             total_cost,
-            p_driving_condition
+            p_driving_condition,
+            p_payment_status 
         );
     END IF;
 END //
 
 DELIMITER ;
-
 
 
 DROP PROCEDURE IF EXISTS InsertWaterConsumption;
@@ -155,7 +151,8 @@ CREATE PROCEDURE InsertWaterConsumption(
     IN p_user_id INT,
     IN p_utility_provider_id INT,
     IN p_consumption_date DATE,
-    IN p_liters_consumed FLOAT
+    IN p_liters_consumed FLOAT,
+    IN p_payment_status ENUM('due', 'paid') 
 )
 BEGIN
     DECLARE v_unit_price FLOAT DEFAULT 0;
@@ -171,21 +168,24 @@ BEGIN
     IF NOT EXISTS (
         SELECT 1
         FROM daily_water_consumption
-        WHERE user_id = p_user_id AND consumption_date = p_consumption_date
+        WHERE user_id = p_user_id 
+          AND consumption_date = p_consumption_date
     ) THEN
         INSERT INTO daily_water_consumption (
             user_id,
             utility_provider_id,
             consumption_date,
             liters_consumed,
-            daily_bill
+            daily_bill,
+            payment_status 
         )
         VALUES (
             p_user_id,
             p_utility_provider_id,
             p_consumption_date,
             p_liters_consumed,
-            v_daily_bill
+            v_daily_bill,
+            p_payment_status 
         );
     END IF;
 END;
@@ -195,34 +195,43 @@ DELIMITER ;
 
 DROP PROCEDURE IF EXISTS InsertGasConsumption;
 
-
 DELIMITER //
 
 CREATE PROCEDURE InsertGasConsumption(
     IN p_user_id INT,
+    IN p_utility_provider_id INT,
     IN p_consumption_date DATE,
     IN p_gas_used FLOAT,
     IN p_gas_cost FLOAT,
-    IN p_household_type VARCHAR(50),
-    IN p_burner_type VARCHAR(10),
-    IN p_num_members INT
+    IN p_household_type ENUM('metered', 'non_metered'),
+    IN p_burner_type ENUM('single', 'double'),
+    IN p_num_members INT,
+    IN p_payment_status ENUM('due', 'paid')
 )
 BEGIN
     IF NOT EXISTS (
-        SELECT 1 FROM daily_gas_consumption 
-        WHERE user_id = p_user_id AND consumption_date = p_consumption_date
+        SELECT 1 
+        FROM daily_gas_consumption
+        WHERE user_id = p_user_id 
+          AND consumption_date = p_consumption_date
     ) THEN
         INSERT INTO daily_gas_consumption (
-            user_id, consumption_date,
+            user_id, utility_provider_id, consumption_date,
             gas_used_cubic_meters, gas_cost,
-            household_type, burner_type, num_members
+            household_type, burner_type, num_members,
+            payment_status
         )
         VALUES (
-            p_user_id, p_consumption_date,
+            p_user_id, p_utility_provider_id, p_consumption_date,
             p_gas_used, p_gas_cost,
-            p_household_type, p_burner_type, p_num_members
+            p_household_type, p_burner_type, p_num_members,
+            p_payment_status
         );
     END IF;
 END //
 
 DELIMITER ;
+
+
+
+

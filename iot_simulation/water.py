@@ -122,16 +122,26 @@ def fetch_all_users():
 
 
 def log_daily_water_consumption(user_id, utility_provider_id, date, liters_consumed, unit_price):
-    """
-    Call the InsertWaterConsumption procedure to log daily water consumption properly.
-    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
-        cursor.callproc('InsertWaterConsumption', (user_id, utility_provider_id, date, liters_consumed))
+        # 🆕 Determine payment status
+        today = datetime.date.today()
+        if (date.year == today.year and date.month >= today.month - 1) or (today.month == 1 and date.month == 12 and date.year == today.year - 1):
+            payment_status = 'due'
+        else:
+            payment_status = 'paid'
 
-        # ✅ Correct way to clear result sets
+        cursor.callproc('InsertWaterConsumption', (
+            user_id,
+            utility_provider_id,
+            date,
+            liters_consumed,
+            payment_status  # 🆕 Now passing this
+        ))
+
+        # Clear any results if procedure returns something
         while cursor.nextset() is not None:
             pass
 
