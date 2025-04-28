@@ -213,7 +213,7 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', 
                             admin_name=session.get('display_name'), 
                             top_providers=top_providers,
-                            top_users=top_users)  # ✅ Pass it to template!
+                            top_users=top_users)  
 
 
 @app.route('/admin_profile')
@@ -546,7 +546,7 @@ def dashboard():
     """, (user_id,))
     monthly_carbon_data = cursor.fetchall()
 
-    # 1. Fetch Monthly Carbon Footprint (electricity, fuel, gas, water individually)
+    #  Fetch Monthly Carbon Footprint (electricity, fuel, gas, water individually)
     cursor.execute("""
         SELECT 
             MONTH(consumption_date) AS month,
