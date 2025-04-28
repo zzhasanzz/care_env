@@ -6,22 +6,33 @@
     <title>Admin Profile</title>
     <style>
         body {
-            background-color: #f7f7f7;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-        }
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    min-height: 100vh;
+    }
+
+    .main-content {
+        margin-left: 260px;
+        flex: 1;
+        padding: 40px;
+        background: url('{{ url_for('static', filename='bg.png') }}') center center / cover no-repeat fixed;
+        background-color: #f7f7f7;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        overflow-x: auto;
+    }
+
 
         .card {
             background: #ffffff;
             border-radius: 10px;
-            padding: 30px;
             max-width: 600px;
             width: 100%;
+            justify-content: center;
             box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
         }
 
@@ -118,12 +129,27 @@
             padding: 30px;
             overflow-x: auto;
         }
+        .logo-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .logo-image {
+        width: 200px;
+        height: auto;
+    }
     </style>
 </head>
 
 <body>
+    <div class="container">
      <!-- Sidebar -->
      <div class="sidebar">
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-image">
+        </div>
+        
+        <a href="{{ url_for('admin_dashboard') }}" class="sidebar-btn">Dashboard</a>
         <a href="{{ url_for('admin_profile') }}" class="sidebar-btn">Profile</a>
         <a href="{{ url_for('user_details') }}" class="sidebar-btn">User Details</a>
         <a href="{{ url_for('view_providers') }}" class="sidebar-btn">View Utility Providers</a>
@@ -132,9 +158,10 @@
         <a href="{{ url_for('add_vehicle') }}" class="sidebar-btn">Add Vehicle</a>
         <a href="{{ url_for('logout') }}" class="logout">Logout</a>
     </div>
+</div>
 
-    <div class="main-content">
-        <div class="card">
+    <div class="main-content" >
+        <div class="card"  style="background: rgba(255, 255, 255, 0.8); border-radius: 10px; padding: 40px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
             <div class="profile-header">
                 <div class="profile-image"></div> <!-- Placeholder for Admin Photo -->
                 <h1>{{ admin.display_name }}</h1>
