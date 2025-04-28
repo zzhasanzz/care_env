@@ -81,10 +81,22 @@ Executing these scripts will set up the schema for your project. Let me know if 
 
 ### 5. Run the application
 
+First run the simulation files:
+
+```bash
+cd iot_simulation
+python electricity.py
+python water.py
+python fuel.py
+python gas.py
+python safe_limits.py
+python footprint.py
+``` 
+
 Start the Flask development server:
 
 ```bash
-python app.py
+python run.py
 ```
 
 You can now visit the application in your browser at [http://localhost:5000](http://localhost:5000).
