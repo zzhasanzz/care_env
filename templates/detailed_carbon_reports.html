@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Carbon Report</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Detailed Carbon Footprint Report</h1>
+
+        {% if error_message %}
+            <div class="error-message">
+                <p>{{ error_message }}</p>
+            </div>
+        {% elif not carbon_reports %}
+            <div class="no-data-message">
+                <p>No carbon report data available for the selected month and year.</p>
+            </div>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Year</th>
+                    <th>Month</th>
+                    <th>Electricity (kg)</th>
+                    <th>Fuel (kg)</th>
+                    <th>Gas (kg)</th>
+                    <th>Water (kg)</th>
+                    <th>Total Emission (kg)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in carbon_reports %}
+                    <tr>
+                        <td>{{ report.year or 'Grand Total' }}</td>
+                        <td>{{ report.month or '' }}</td>
+                        <td>{{ report.electricity_emission_kg }}</td>
+                        <td>{{ report.fuel_emission_kg }}</td>
+                        <td>{{ report.gas_emission_kg }}</td>
+                        <td>{{ report.water_emission_kg }}</td>
+                        <td>{{ report.total_emission_kg }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        {% endif %}
+
+        <div>
+            <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+        </div>
+    </div>
+</body>
+</html>
