@@ -70,10 +70,6 @@ pip install -r requirements.txt
 
 Make sure you have a MySQL database set up and run the necessary SQL scripts to create the required tables.
 
-```bash
-# Run SQL migrations (can use Flask-Migrate or manually run the scripts)
-python manage.py db upgrade
-```
 
 ### 5. Run the application
 
