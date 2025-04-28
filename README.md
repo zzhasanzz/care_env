@@ -68,7 +68,15 @@ pip install -r requirements.txt
 
 ### 4. Set up the database
 
-Make sure you have a MySQL database set up and run the necessary SQL scripts to create the required tables.
+To set up the database schema:
+
+1. **Open MySQL Workbench**.
+2. **Execute the following SQL scripts**:
+   - `ddl.sql` – This script will create the necessary tables.
+   - `pl_sql.sql` – This script will set up the required PL/SQL procedures.
+   - `triggers.sql` – This script will create any necessary triggers.
+
+Executing these scripts will set up the schema for your project. Let me know if you need further assistance!
 
 
 ### 5. Run the application
@@ -90,16 +98,37 @@ This project uses **Chart.js** for data visualization. The charts are displayed 
 
 ### 7. Database Schema
 
-Here’s a brief overview of the relevant database tables:
+Overview of the relevant database tables:
 
-- **user**: Stores user information such as name, email, and login credentials.
-- **user_vehicles**: Contains the vehicles associated with users and their usage data.
-- **daily_electricity_consumption**: Stores daily consumption data for electricity and associated bills.
-- **daily_water_consumption**: Stores daily consumption data for water and associated bills.
-- **daily_gas_consumption**: Stores daily consumption data for gas and associated bills.
-- **daily_fuel_consumption**: Stores daily fuel consumption data for vehicles.
-- **daily_carbon_footprint**: Stores the calculated carbon footprint for electricity, water, gas, and fuel consumption.
+1. **utility_providers**: Contains utility provider details (e.g., electricity, water, gas) such as name, energy type, unit price, and billing frequency.
 
+2. **vehicles**: Stores vehicle details (model, type, fuel type, efficiency, daily average km).
+
+3. **user**: Stores user information (name, email, address) and their associated utility providers for electricity, water, and gas.
+
+4. **user_housing**: Contains user housing information such as house size, number of members, and renewable energy sources.
+
+5. **daily_electricity_consumption**: Stores daily electricity consumption data for users (units consumed, daily bill).
+
+6. **daily_water_consumption**: Stores daily water consumption data for users (liters consumed, daily bill).
+
+7. **user_vehicles**: Links users with their vehicles, storing purchase details and custom daily km.
+
+8. **daily_fuel_consumption**: Stores daily fuel consumption data for user vehicles (fuel used, fuel cost).
+
+9. **daily_gas_consumption**: Stores daily gas consumption data for users (gas used, cost, household type).
+
+10. **daily_carbon_footprint**: Calculates and stores the carbon footprint based on consumption (electricity, fuel, gas, water).
+
+11. **safe_limits**: Stores safe consumption limits for users (electricity, gas, fuel, water, total).
+
+12. **admin**: Stores admin details (email, display name, phone).
+
+13. **user_wallet**: Stores user wallet information (balance).
+
+14. **user_wallet_auth**: Stores wallet authentication details (username, phone, password).
+
+15. **transactions**: Tracks user transactions (deposits, payments, refunds) with details like amount, transaction type, and provider.
 
 ---
 
@@ -249,7 +278,7 @@ Here’s a brief overview of the relevant database tables:
   - Returns a JSON response indicating success or failure.
   - If successful, the user's balance is updated and the bill is marked as paid.
 
-#### 5. **Carbon Footprint Reporting**
+
 
 ##### `GET /detailed_carbon_reports`
 - **Description**: Fetches detailed monthly carbon footprint reports for the user using `ROLLUP` or `CUBE` in SQL.
@@ -258,94 +287,6 @@ Here’s a brief overview of the relevant database tables:
 
 ---
 
-Sure! I’ve reviewed all your provided DDL scripts carefully, and here's a **properly structured and complete "Database Structure" section** based on them:
-
----
-
-## Database Structure
-
-The following tables are used in the application:
-
-- **`user`**  
-  Stores user credentials, basic information (address, phone, division), linked utility providers (electricity, gas, water), and gas connection type.  
-  ➔ Connected to multiple consumption and wallet-related tables.
-
-- **`user_housing`**  
-  Stores housing details for each user including:
-  - House size (sqft)
-  - Number of family members
-  - Renewable energy capacities (solar panel, wind, others)
-
-- **`utility_providers`**  
-  Stores information about utility service providers:
-  - Provider name, energy type (electricity/gas/water)
-  - Billing information, emission factors, regional info
-
-- **`vehicles`**  
-  Predefined database of vehicle models with:
-  - Fuel type (petrol, diesel, CNG, electric, etc.)
-  - Efficiency (urban/highway km per liter)
-  - Average daily driving distance
-  
-- **`user_vehicles`**  
-  Stores user-specific vehicle ownership details:
-  - Links users to selected vehicles
-  - Custom daily driving distances
-  - License plate information
-
-- **`daily_electricity_consumption`**  
-  Daily logging of electricity usage for users:
-  - Units consumed
-  - Bill calculated
-  - Linked to user and utility provider
-
-- **`daily_water_consumption`**  
-  Daily logging of water usage for users:
-  - Liters consumed
-  - Daily water bill amount
-  - Linked to user and utility provider
-
-- **`daily_gas_consumption`**  
-  Daily logging of gas consumption:
-  - Amount used (cubic meters)
-  - Billing details
-  - Different logic depending on whether the gas connection is metered or non-metered
-
-- **`daily_fuel_consumption`**  
-  Logs fuel consumption from vehicles:
-  - Fuel usage in liters
-  - Fuel cost
-  - Driving condition (urban or highway)
-
-- **`daily_carbon_footprint`**  
-  Logs calculated carbon footprint for each user based on:
-  - Electricity
-  - Fuel
-  - Gas
-  - Water usage
-  - Generates a total emission score with an emission tag (e.g., Good, Moderate, High) and suggestions.
-
-- **`safe_limits`**  
-  Stores personalized safe consumption limits for:
-  - Electricity
-  - Gas
-  - Fuel
-  - Water
-  - Total carbon emission limit
-  
-- **`admin`**  
-  Stores administrator information like email, phone, and name to manage the system.
-
-- **`user_wallet`**  
-  Stores the user's wallet balance for possible future transactions/payments inside the app.
-
-- **`user_wallet_auth`**  
-  Stores authentication information for users specifically for wallet login:
-  - Username
-  - Phone number
-  - Encrypted password hash
-
----
 
 
 ## Testing
