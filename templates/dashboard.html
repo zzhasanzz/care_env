@@ -1,31 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <title>Dashboard</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            background-color: #f7f7f7;
-            margin: 0;
-            background-color: #f7f7f7;
+        :root {
+            --primary-color: #4f7c4f;
+            --primary-light: #6a8f6a;
+            --primary-dark: #4a6d4a;
+            --secondary-color: #68a469;
+            --background-color: #f7f7f7;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --text-light: #666666;
+            --danger-color: #d9534f;
+            --success-color: #28a745;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
 
         .container {
             display: flex;
             min-height: 100vh;
-            overflow: hidden;
         }
 
-
+        /* Sidebar Styles */
         .sidebar {
-            width: 220px;
+            width: 240px;
             background-color: #e2eee2;
             padding: 20px;
             display: flex;
@@ -39,10 +55,22 @@
         }
 
 
-        .sidebar-section {
+        .logo-container {
+            text-align: center;
             margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
 
+        .logo-image {
+            width: 180px;
+            height: auto;
+            transition: transform 0.3s;
+        }
+
+        .logo-image:hover {
+            transform: scale(1.05);
+        }
 
         .sidebar-btn {
             display: block;
@@ -52,8 +80,8 @@
             padding: 10px;
             border-radius: 6px;
             text-decoration: none;
-            font-size: 14px;
-            margin-bottom: 10px;
+            font-size: 12px;
+            margin-bottom: 8px;
             transition: background-color 0.3s;
         }
 
@@ -62,122 +90,219 @@
             background-color: #4a6d4a;
         }
 
-
-        .logout {
-            text-align: center;
-            background-color: #ebd2d2d3;
-            border-radius: 6px;
-            color: #c0392b;
-            font-weight: bold;
-            text-decoration: none;
-            padding: 10px 0;
-            font-size: 14px;
-        }
-
-
-        .main-content {
-            margin-left: 260px;
-            flex: 1;
-            padding: 30px;
-            overflow-x: auto;
-
-        }
-
-        .main-content canvas {
-            width: 100% !important;
-            height: auto !important;
-        }
-
-
-        .section {
-            margin-bottom: 30px;
-        }
-
-
-        .section h2 {
-            color: #68a469;
-            margin-bottom: 15px;
-            margin-left: 80px;
-        }
-
-
-        canvas {
-            max-width: 100%;
-            height: auto;
-            margin-left: 40px;
-            padding: 20px;
-        }
-
-        .sidebar a.logout {
-            margin-top: 20px;
-            color: #d9534f;
-            text-decoration: none;
-            font-weight: bold;
-            text-align: center;
-        }
-
-        .main-content {
-            flex: 1;
-            padding: 30px;
-        }
-
-        .section {
-            margin-bottom: 30px;
-        }
-
-        .section h2 {
-            color: #68a469;
-            margin-bottom: 15px;
-        }
-
-        canvas {
-            max-width: 100%;
-            height: auto;
-        }
-
-        /* Wallet Balance Styling */
         .wallet-balance {
             background-color: #edfbed;
             border-radius: 8px;
             padding: 15px;
-            margin-top: 10px;
-            margin-bottom: 10px;
+            margin: 10px 0;
             text-align: center;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: var(--shadow);
+        }
+
+        .wallet-balance h3 {
+            color: var(--primary-color);
+            margin-bottom: 8px;
+            font-size: 16px;
         }
 
         .balance-amount {
             font-size: 24px;
             font-weight: bold;
-            color: #28a745;
-            /* Green color for balance */
+            color: var(--success-color);
             margin: 10px 0;
         }
 
         .btn-wallet {
             display: block;
-            background-color: #6a8f6a;
+            background-color: var(--primary-light);
             color: white;
-            padding: 8px 12px;
-            border-radius: 4px;
+            padding: 10px;
+            border-radius: 6px;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 8px;
             text-decoration: none;
+            transition: all 0.3s;
+            font-size: 12px;
         }
 
         .btn-wallet:hover {
-            background-color: #4a6d4a;
-            text-decoration: none;
+            background-color: var(--primary-dark);
         }
-        .logo-container {
-        text-align: center;
-        margin-bottom: 20px;
-    }
 
-    .logo-image {
-        width: 200px; 
-        height: auto;
-    }
+        .logout {
+            display: block;
+            background-color: #ebd2d2d3;
+            color: var(--danger-color);
+            text-align: center;
+            padding: 12px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 12px;
+            margin-top: none;
+            transition: all 0.3s;
+        }
+
+        .logout:hover {
+            background-color: #e8c2c2;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 240px;
+            flex: 1;
+            padding: 30px;
+            background-color: var(--background-color);
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-title {
+            color: var(--primary-color);
+            font-size: 24px;
+            font-weight: 600;
+            align-items: center;
+        }
+
+        .date-display {
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        /* Chart Grid Layout */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .chart-title {
+            color: var(--secondary-color);
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* Emission Cards */
+        .emission-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+        }
+
+        .emission-cards-2{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 40px;
+            margin-left: 140px;
+            margin-right: 160px;
+        }
+
+        .emission-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            text-align: center;
+            transition: all 0.3s;
+            
+        }
+
+        .emission-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .emission-card h2 {
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .emission-chart-container {
+            position: relative;
+            height: 200px;
+            width: 300px;
+            margin-left: 65px;
+            
+        }
+
+        .emission-chart-container-2 {
+            position: relative;
+            height: 200px;
+            width: 300px;
+            margin-left: 90px;
+            
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 1200px) {
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                padding: 15px;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .chart-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .emission-cards {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 
@@ -187,116 +312,159 @@
         <div class="sidebar">
             <div class="logo-container">
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-image">
-            </div>   
+            </div>
             <a href="{{ url_for('profile') }}" class="sidebar-btn">Profile</a>
             <a href="{{ url_for('update_user') }}" class="sidebar-btn">Update Info</a>
-            <a href="{{ url_for('view_electricity_bills') }}" class="sidebar-btn">View Electricity Bills</a>
-            <a href="{{ url_for('view_water_bills') }}" class="sidebar-btn">View Water Bills</a>
-            <a href="{{ url_for('view_gas_bills') }}" class="sidebar-btn">View Gas Bills</a>
-            <a href="{{ url_for('view_fuel_bills') }}" class="sidebar-btn">View Fuel Bills</a>
+            <a href="{{ url_for('view_electricity_bills') }}" class="sidebar-btn">Electricity Bills</a>
+            <a href="{{ url_for('view_water_bills') }}" class="sidebar-btn">Water Bills</a>
+            <a href="{{ url_for('view_gas_bills') }}" class="sidebar-btn">Gas Bills</a>
+            <a href="{{ url_for('view_fuel_bills') }}" class="sidebar-btn">Fuel Bills</a>
+            
             <div class="wallet-balance">
                 <h3>Wallet Balance</h3>
                 <div class="balance-amount">
                     ৳{{ "%.2f"|format(wallet_balance) }}
                 </div>
-                <a href="{{ url_for('update_user') }}" class="btn btn-wallet">Manage Wallet</a>
+                <a href="{{ url_for('update_user') }}" class="btn-wallet">Manage Wallet</a>
             </div>
+            
             <a href="{{ url_for('logout') }}" class="logout">Logout</a>
         </div>
         <!-- Sidebar End -->
 
         <!-- Main Content Start -->
         <div class="main-content">
-            <div class="section">
-                <h2>Daily Electricity Consumption (Last 15 Days)</h2>
-                <canvas id="dailyConsumptionChart"></canvas>
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">Energy Consumption Dashboard</h1>
+                <div class="date-display">{{ current_date }}</div>
             </div>
 
-            <div class="section">
-                <h2>Electricity Usage Histogram</h2>
-                <canvas id="electricityHistogramChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Daily Water Consumption (Last 15 Days)</h2>
-                <canvas id="dailyWaterConsumptionChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Water Usage Histogram</h2>
-                <canvas id="waterHistogramChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Daily Gas Consumption (Last 15 Days)</h2>
-                <canvas id="dailyGasConsumptionChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Gas Usage Histogram</h2>
-                <canvas id="gasHistogramChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Daily Fuel Consumption (Last 15 Days)</h2>
-                <canvas id="dailyFuelConsumptionChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Fuel Usage Histogram</h2>
-                <canvas id="fuelHistogramChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Daily Carbon Footprint (Last 15 Days)</h2>
-                <canvas id="dailyCarbonChart"></canvas>
-            </div>
-
-            <div class="section">
-                <h2>Monthly Carbon Footprint</h2>
-                <canvas id="carbonHistogramChart"></canvas>
-            </div>
-
-
-            <div class="section-card"
-                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 60px; margin-top: 60px; margin-left: 120px;">
-
-                <div
-                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
-                    <h2 style="color: #68a469;">Total Emission</h2>
-                    <canvas id="totalEmissionChart" style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+            <!-- Main Charts Grid -->
+            <div class="chart-grid">
+                <!-- Electricity Consumption -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h2 class="chart-title">Daily Electricity Consumption</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="dailyConsumptionChart"></canvas>
+                    </div>
                 </div>
 
-                <div
-                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
-                    <h2 style="color: #68a469;">Electricity Emission</h2>
-                    <canvas id="electricityEmissionChart"
-                        style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+                <!-- Electricity Histogram -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h2 class="chart-title">Monthly Electricity Usage</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="electricityHistogramChart"></canvas>
+                    </div>
                 </div>
-                <div
-                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
-                    <h2 style="color: #68a469;">Fuel Emission</h2>
-                    <canvas id="fuelEmissionChart" style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+
+                <!-- Water Consumption -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h2 class="chart-title">Daily Water Consumption</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="dailyWaterConsumptionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Water Histogram -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h2 class="chart-title">Monthly Water Usage</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="waterHistogramChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gas Consumption -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h2 class="chart-title">Daily Gas Consumption</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="dailyGasConsumptionChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Gas Histogram -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h2 class="chart-title">Monthly Gas Usage</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="gasHistogramChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Carbon Footprint -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h2 class="chart-title">Daily Carbon Footprint</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="dailyCarbonChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Carbon Histogram -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h2 class="chart-title">Monthly Carbon Footprint</h2>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="carbonHistogramChart"></canvas>
+                    </div>
                 </div>
             </div>
 
-            <div class="section-card"
-                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 60px; margin-top: 60px; margin-right: 120px; margin-left: 240px;">
-
-                <div
-                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
-                    <h2 style="color: #68a469;">Gas Emission</h2>
-                    <canvas id="gasEmissionChart" style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+            <!-- Emission Cards -->
+            <h2 style="color: var(--primary-color); margin: 30px 0 20px;">Monthly Emission Analysis</h2>
+            <div class="emission-cards">
+                <div class="emission-card">
+                    <h2>Total Emission</h2>
+                    <div class="emission-chart-container">
+                        <canvas id="totalEmissionChart"></canvas>
+                    </div>
                 </div>
-                <div
-                    style="background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center;">
-                    <h2 style="color: #68a469;">Water Emission</h2>
-                    <canvas id="waterEmissionChart" style="max-width: 250px; height: 250px; margin: 0 auto;"></canvas>
+
+                <div class="emission-card">
+                    <h2>Electricity Emission</h2>
+                    <div class="emission-chart-container">
+                        <canvas id="electricityEmissionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="emission-card">
+                    <h2>Fuel Emission</h2>
+                    <div class="emission-chart-container">
+                        <canvas id="fuelEmissionChart"></canvas>
+                    </div>
                 </div>
             </div>
 
+            <div class="emission-cards-2">
+                <div class="emission-card">
+                    <h2>Gas Emission</h2>
+                    <div class="emission-chart-container-2">
+                        <canvas id="gasEmissionChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="emission-card">
+                    <h2>Water Emission</h2>
+                    <div class="emission-chart-container-2">
+                        <canvas id="waterEmissionChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </div>
         <!-- Main Content End -->
+    </div>
 
     </div>
 
