@@ -96,6 +96,7 @@ python footprint.py
 Start the Flask development server:
 
 ```bash
+cd ..
 python run.py
 ```
 
