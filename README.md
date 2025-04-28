@@ -1,7 +1,6 @@
 
 <h1 align="center">care .env</h1>
 
----
 
 <h2 align="center">Monitor your Energy and Utility Consumption</h2>
 
@@ -42,7 +41,7 @@ This system is primarily focused on:
 
 ```bash
 git clone https://github.com/your-username/care-environment.git
-cd care-environment
+cd care_env
 ```
 
 ### 2. Set up environment variables
