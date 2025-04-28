@@ -607,7 +607,7 @@ def dashboard():
 
     recent_carbon_footprint = [
         {
-            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "date": record["consumption_date"].strftime("%m-%d"),
             "carbon_kg": record["total_emission_kg"],
             "level": record["emission_tag"],
             "suggestion": record["suggestions"]
@@ -635,14 +635,14 @@ def dashboard():
 
     # Structure  electricity `recent_consumption`
     recent_consumption = [
-        {"date": record["consumption_date"].strftime("%Y-%m-%d"), "units": record["units_consumed"], "bill": record["daily_bill"]}
+        {"date": record["consumption_date"].strftime("%m-%d"), "units": record["units_consumed"], "bill": record["daily_bill"]}
         for record in consumption_records
     ]
 
     # Structure recent_water_consumption
     recent_water_consumption = [
         {
-            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "date": record["consumption_date"].strftime("%m-%d"),
             "liters": record["liters_consumed"],
             "bill": record["daily_bill"]
         }
@@ -651,7 +651,7 @@ def dashboard():
     
     recent_gas_consumption=[
         {
-            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "date": record["consumption_date"].strftime("%m-%d"),
             "cubic_meters": record["gas_used_cubic_meters"],
             "bill": record["gas_cost"]
         }
@@ -659,7 +659,7 @@ def dashboard():
     ]
     recent_fuel_consumption=[
         {
-            "date": record["consumption_date"].strftime("%Y-%m-%d"),
+            "date": record["consumption_date"].strftime("%m-%d"),
             "liters": record["fuel_used_liters"],
             "bill": record["fuel_cost"]
         }
@@ -709,36 +709,6 @@ def dashboard():
         safe_limits=safe_limits,
         wallet_balance=balance,
     )
-
-@app.route('/admin/admin_provider_statistics')
-def admin_provider_statistics():
-    if session.get('user_type') != 'admin':
-        return "Access Denied", 403
-
-    cursor = db.cursor(MySQLdb.cursors.DictCursor)
-
-    query = """
-    SELECT 
-        up.energy_type,
-        up.provider_name,
-        COUNT(DISTINCT u.id) AS total_users,
-        SUM(dcf.total_emission_kg) AS total_emission
-    FROM utility_providers up
-    LEFT JOIN user u 
-        ON (u.electricity_provider = up.id 
-            OR u.water_provider = up.id 
-            OR u.gas_provider = up.id)
-    LEFT JOIN daily_carbon_footprint dcf ON u.id = dcf.user_id
-    GROUP BY up.energy_type, up.provider_name WITH ROLLUP
-    ORDER BY up.energy_type, up.provider_name
-    """
-
-    cursor.execute(query)
-    provider_stats = cursor.fetchall()
-    cursor.close()
-
-    return render_template('admin_provider_statistics.html', provider_stats=provider_stats)
-
 
 
 @app.route('/profile')
