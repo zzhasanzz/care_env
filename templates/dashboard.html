@@ -169,6 +169,15 @@
             background-color: #4a6d4a;
             text-decoration: none;
         }
+        .logo-container {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .logo-image {
+        width: 200px; 
+        height: auto;
+    }
     </style>
 </head>
 
@@ -176,6 +185,9 @@
     <div class="container">
         <!-- Sidebar Start -->
         <div class="sidebar">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-image">
+            </div>   
             <a href="{{ url_for('profile') }}" class="sidebar-btn">Profile</a>
             <a href="{{ url_for('update_user') }}" class="sidebar-btn">Update Info</a>
             <a href="{{ url_for('view_electricity_bills') }}" class="sidebar-btn">View Electricity Bills</a>
