@@ -711,6 +711,36 @@ def dashboard():
     )
 
 
+@app.route('/admin/admin_provider_statistics')
+def admin_provider_statistics():
+    if session.get('user_type') != 'admin':
+        return "Access Denied", 403
+
+    cursor = db.cursor(MySQLdb.cursors.DictCursor)
+
+    query = """
+    SELECT 
+        up.energy_type,
+        up.provider_name,
+        COUNT(DISTINCT u.id) AS total_users,
+        SUM(dcf.total_emission_kg) AS total_emission
+    FROM utility_providers up
+    LEFT JOIN user u 
+        ON (u.electricity_provider = up.id 
+            OR u.water_provider = up.id 
+            OR u.gas_provider = up.id)
+    LEFT JOIN daily_carbon_footprint dcf ON u.id = dcf.user_id
+    GROUP BY up.energy_type, up.provider_name WITH ROLLUP
+    ORDER BY up.energy_type, up.provider_name
+    """
+
+    cursor.execute(query)
+    provider_stats = cursor.fetchall()
+    cursor.close()
+
+    return render_template('admin_provider_statistics.html', provider_stats=provider_stats)
+
+
 @app.route('/profile')
 def profile():
     # Assuming you already have user_info session
