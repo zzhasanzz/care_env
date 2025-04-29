@@ -231,6 +231,7 @@
             margin-top: 40px;
             margin-left: 140px;
             margin-right: 160px;
+            margin-bottom: 40px;
         }
 
         .emission-card {
@@ -240,6 +241,7 @@
             box-shadow: var(--shadow);
             text-align: center;
             transition: all 0.3s;
+        
             
         }
 
@@ -462,6 +464,9 @@
                     </div>
                 </div>
             </div>
+
+            <a href="{{ url_for('detailed_carbon_reports') }}" class="sidebar-btn">View Carbon Footprint Report</a>
+
         </div>
         <!-- Main Content End -->
     </div>

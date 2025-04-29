@@ -1603,6 +1603,58 @@ def pay_fuel_bill():
     finally:
         cursor.close()
 
+
+@app.route('/detailed_carbon_reports', methods=['GET'])
+@login_required
+def detailed_carbon_reports():
+    user_profile = session['profile']
+    google_id = user_profile['id']
+
+    conn = get_db_connection()
+    cursor = conn.cursor(MySQLdb.cursors.DictCursor)
+
+    carbon_reports = []
+    error_message = None
+
+    try:
+        # Get user_id
+        cursor.execute("SELECT id FROM user WHERE google_id = %s", (google_id,))
+        user = cursor.fetchone()
+        if not user:
+            error_message = "User not found."
+        else:
+            user_id = user['id']
+            
+            # Get carbon reports monthly
+            cursor.execute("""
+                SELECT 
+                    YEAR(consumption_date) AS year,
+                    MONTH(consumption_date) AS month,
+                    SUM(electricity_emission_kg) AS electricity_emission_kg,
+                    SUM(fuel_emission_kg) AS fuel_emission_kg,
+                    SUM(gas_emission_kg) AS gas_emission_kg,
+                    SUM(water_emission_kg) AS water_emission_kg,
+                    SUM(total_emission_kg) AS total_emission_kg
+                FROM daily_carbon_footprint
+                WHERE user_id = %s
+                GROUP BY year, month WITH ROLLUP
+            """, (user_id,))
+            
+            carbon_reports = cursor.fetchall()
+
+    except MySQLdb.Error as err:
+        print(f"Database error: {err}")
+        error_message = "Database error while fetching carbon reports."
+
+    finally:
+        cursor.close()
+        conn.close()
+
+    return render_template('detailed_carbon_reports.html', carbon_reports=carbon_reports, error_message=error_message)
+
+
+        
+
 @app.route('/logout')
 def logout():
     session.clear()
